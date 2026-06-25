@@ -1,9 +1,6 @@
-#include <c10/core/TensorOptions.h>
-#include <iostream>
-#include <torch/cuda.h>
-#include <torch/torch.h>
+#include <oven/test.hpp>
 
-int main() {
+int test() {
     std::cout << "===1. Tensor creation===" << std::endl;
     torch::Tensor t1 = torch::tensor({{1.0, 2.0, 3.0}, {4.0, 5.0, 6.0}});
     std::cout << "t1:\n" << t1 << std::endl;
