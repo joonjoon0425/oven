@@ -11,11 +11,12 @@ set(TORCH_CUDA_ARCHITECTURES "8.9")
 set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/third-party/libtorch")
 
 add_library(oven SHARED
-    src/test.cpp
+    src/space/discrete.cpp
+    src/space/continuous.cpp
 )
 
 find_package(nlohmann_json REQUIRED)
-target_link_libraries(oven PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(oven PUBLIC nlohmann_json::nlohmann_json)
 
 find_package(Torch REQUIRED)
 if(NOT Torch_FOUND)
