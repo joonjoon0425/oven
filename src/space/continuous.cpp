@@ -14,7 +14,7 @@ ContinuousSpace::ContinuousSpace(torch::Tensor lower_bound, torch::Tensor upper_
     OVEN_ASSERT(lower_bound.device() == upper_bound.device(), "Upper bound and lower bound located in different devices.");
     OVEN_ASSERT(torch::is_floating_point(lower_bound), "Lower bound is not floating type.");
     OVEN_ASSERT(torch::is_floating_point(upper_bound), "Upper bound is not floating type.");
-    OVEN_ASSERT((lower_bound < upper_bound).sum().item<bool>(), "Upper bound is lower than lower bound. What the...");
+    OVEN_ASSERT((lower_bound < upper_bound).all().item<bool>(), "Upper bound is lower than lower bound. What the...");
 }
 
 c10::IntArrayRef ContinuousSpace::shape() const {

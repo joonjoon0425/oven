@@ -14,7 +14,7 @@ private:
     // std::uniform_int_distribution<int64_t> dist_;
 
 public:
-    DiscreteSpace(int64_t n, int64_t offset);
+    DiscreteSpace(int64_t n, int64_t offset = 0);
 
     c10::IntArrayRef shape() const override;
     torch::Tensor sample() const override;
