@@ -16,6 +16,8 @@ namespace detail {
     }    
 }// namespace oven::detail
 
+Tray::Tray(intrusive_ptr<TrayImpl> impl) : impl_(impl) {}
+
 const SmallVector& Tray::shape() const {
     return impl_->shape_;
 }

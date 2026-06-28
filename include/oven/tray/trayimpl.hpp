@@ -1,12 +1,15 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 #include <oven/tray/types.hpp>
-#include <oven/tray/tray.hpp>
+#include <oven/utils/intrusive_ptr.hpp>
 
 namespace oven {
+using SmallVector = std::vector<int64_t>;
+class Tray;
 
-class TrayImpl {
+class TrayImpl : public RefCountable {
 private:
     SmallVector shape_;
     SmallVector stride_;
@@ -18,17 +21,10 @@ private:
 public:
     friend Tray;
 
-    TrayImpl(const SmallVector& shape, const SmallVector& stride, const DType& dtype, const Device& device, std::shared_ptr<void> data)
-    : shape_(shape),
-      stride_(stride),
-      dtype_(dtype),
-      device_(device),
-      data_(data) {}
+    TrayImpl(const SmallVector& shape, const SmallVector& stride, const DType& dtype, const Device& device, std::shared_ptr<void> data);
+    TrayImpl(const TrayImpl& other);
+    TrayImpl(TrayImpl&& other) noexcept;
 
-    TrayImpl(const TrayImpl& other) = default;
-    TrayImpl& operator=(const TrayImpl& other) = default;
-    
-    TrayImpl(TrayImpl&&) = default;
-    TrayImpl& operator=(TrayImpl&&) = default;
+    TrayImpl& operator=(TrayImpl) = delete;
 };
 }

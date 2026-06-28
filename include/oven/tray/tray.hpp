@@ -1,12 +1,12 @@
 #pragma once
 
 #include <memory>
-#include <vector>
 #include <cstdint>
 #include <oven/tray/types.hpp>
+#include <oven/tray/trayimpl.hpp>
+#include <oven/utils/intrusive_ptr.hpp>
 
 namespace oven {
-using SmallVector = std::vector<int64_t>;
 
 namespace detail {
     // helper function for computing stride from given shape
@@ -18,11 +18,10 @@ class TrayImpl;
 // A simple numpy-like object
 class Tray {
 private:
-    std::shared_ptr<TrayImpl> impl_;
+    intrusive_ptr<TrayImpl> impl_;
     
 public:
-    Tray(std::shared_ptr<TrayImpl> impl) : impl_(impl) {}
-    Tray() : impl_(nullptr) {}
+    Tray(intrusive_ptr<TrayImpl> impl);
     const SmallVector& shape() const;
     const SmallVector& stride() const;
     const int64_t ndim() const;

@@ -1,7 +1,7 @@
 #include "oven/tray/types.hpp"
 #include <cstring>
 #include <memory>
-#include <oven/tray/trayimpl.hpp>
+#include <oven/tray/tray.hpp>
 #include <oven/tray/dispatcher.hpp>
 
 namespace oven {
@@ -27,7 +27,7 @@ Tray __cpu_zeros(SmallVector shape, DType dtype) {
         // it is important to make a custom deleter.
         // now we set all bytes to 0
         std::memset(data.get(), 0, total_size * sizeof(scalar_t));
-        return Tray(std::make_shared<TrayImpl>(shape, detail::compute_stride(shape), dtype, Device::CPU, data));
+        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), dtype, Device::CPU, data));
     }
     );
 }
