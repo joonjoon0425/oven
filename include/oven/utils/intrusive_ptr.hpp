@@ -36,7 +36,8 @@ public:
         return false;
     }
 
-    virtual ~RefCountable() = default;
+protected:
+    ~RefCountable() = default;
 };
 
 // intrusive pointer class
@@ -64,6 +65,22 @@ public:
     }
 
     intrusive_ptr& operator=(intrusive_ptr other) noexcept { // copy-and-swap
+        // What happens here?
+        
+        // We currently have A now.
+        // Suppose that we called operator= with original lavalue ptr named B.
+        // Then, the other(lvalue) will be called, and the REFCOUNT of B INCREASES.
+        // After that, only the swap happens, WITH NO REFCOUNT INCREASE.
+        // After the return, the other is destructed and REFCOUNT of A DECREASES.
+        // 
+        // Final result is A: refcount -> refcount + 1
+        // B: refcount -> refcount - 1
+
+        // Now suppose that we called operator= with rvalue.
+        // Then, the move constructor is called and NO REFCOUNT INCREASE happens.
+        // Then swap. The other is destructed, and REFCOUNT of A DECREASES.
+        // Final result is B: refcount -> refcount. No difference, since it is a move operator=.
+        // A: refcount -> refcount - 1. Correct, since the pointer is now not referencing A.
         std::swap(ptr_, other.ptr_);
         return *this;
     }
@@ -73,6 +90,10 @@ public:
     T* operator->() const noexcept {return ptr_;}
     T& operator*() const noexcept {return *ptr_;}
     explicit operator bool() const noexcept {return ptr_;}
+    T* get() const noexcept {return ptr_;}
+
+    bool operator==(std::nullptr_t) const noexcept {return ptr_ == nullptr;}
+    bool operator!=(std::nullptr_t) const noexcept {return ptr_ != nullptr;}
 };
 
 template <typename U, typename... Args>
