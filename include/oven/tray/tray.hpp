@@ -30,6 +30,8 @@ public:
     const std::shared_ptr<void> data() const;
 }; // class Tray
 
-Tray zeros(SmallVector shape, DType dtype, Device device = Device::CPU);
+Tray zeros(SmallVector shape, DType dtype = oven::kFloat32, Device device = Device::CPU);
+Tray ones(SmallVector shape, DType dtype = oven::kFloat32, Device device = Device::CPU);
+Tray full(SmallVector shape, Scalar val, DType dtype = oven::kFloat32, Device device = Device::CPU);
 
 } // namespace oven

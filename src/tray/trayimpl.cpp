@@ -4,14 +4,15 @@
 namespace oven {
 
 TrayImpl::TrayImpl(const SmallVector& shape, const SmallVector& stride, const DType& dtype, const Device& device, std::shared_ptr<void> data)
-: shape_(shape),
+: RefCountable(),
+  shape_(shape),
   stride_(stride),
   dtype_(dtype),
   device_(device),
   data_(data) {}
 
 TrayImpl::TrayImpl(const TrayImpl& other)
-: RefCountable(),
+: RefCountable(), // Note that we are making a new TrayImpl object. That is, if we copy the RefCount, two TrayImpl objects will have same lifetime.
   shape_(other.shape_),
   stride_(other.stride_),
   dtype_(other.dtype_),
