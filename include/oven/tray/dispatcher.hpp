@@ -1,0 +1,103 @@
+#pragma once
+
+// A LibTorch-like Dispatcher. I don't know why I made this. Actually.
+#include <oven/tray/types.hpp>
+#include <utility>
+#include <oven/utils/assert.hpp> // <-------Change this later if you want to completely dispatch oven and tray.
+
+namespace oven::detail {
+
+enum class OpCode : uint16_t {
+    add,
+    sub,
+    mul,
+    div,
+    matmul,
+
+    zeros,
+    ones,
+    full,
+    empty,
+
+    TOTAL
+};
+
+struct DispatchKey {
+    uint32_t key;
+
+    // saves key as bitmasks! Currently, 16 bits are used for operator code, 8 bits for each data type and device type.
+    // It too much right now, actually.
+    DispatchKey(OpCode opcode, Device device) {
+        key = (static_cast<uint32_t>(opcode) << 8)|(static_cast<uint8_t>(device));
+    }
+};
+
+class Dispatcher {
+private:
+    using FuncPtr = void(*)();
+    // We register all the functions by erasing their types
+    // Later, function signatures will be given as template parameters when dispatcher is called
+    FuncPtr registry[static_cast<uint16_t>(OpCode::TOTAL)][static_cast<uint8_t>(Device::TOTAL)] = {nullptr, };
+    Dispatcher() = default;
+
+public:
+    // This will return a singleton Dispatcher object
+    static Dispatcher& get_instance();
+
+    template<typename FuncType>
+    void registration(DispatchKey key, FuncType&& op) {
+        // Separate each key value with bit operations.
+        auto opcode = (key.key >> 8) & 0xFFFF;
+        auto device = (key.key) & 0xFF;
+        registry[opcode][device] = reinterpret_cast<FuncPtr>(op);
+    }
+
+    template <typename FuncType, typename... Args>
+    auto dispatch(DispatchKey key, Args&&... args) {
+        auto opcode = (key.key >> 8) & 0xFFFF;
+        auto device = (key.key) & 0xFF;
+        
+        auto kernel = reinterpret_cast<FuncType*>(registry[opcode][device]);
+        return kernel(std::forward<Args>(args)...);
+    }
+};
+
+}// namespace oven::detail
+
+// This is a structure for registration of a kernel.
+// Since it is not allowed to call a function globally, we create a static structure, calling its constructor internally.
+struct KernelRegistration {
+    template <typename FuncType>
+    KernelRegistration(oven::detail::DispatchKey key, FuncType&& op) {
+        oven::detail::Dispatcher::get_instance().registration(key, op);
+    }
+};
+
+// This is a macro for registration
+#define CONCAT_IMPL(a, b) a##b
+#define CONCAT(a, b) CONCAT_IMPL(a, b)
+
+#define TRAY_REGISTER(opname, device, kernel) \
+    static KernelRegistration\
+    CONCAT(regist_##opname##device, __COUNTER__)\
+    ({oven::detail::OpCode::opname, oven::Device::device}, kernel);
+
+// This is a macro for type dispatching
+// Like LibTorch!!
+#define TRAY_DISPATCH_CASE(enum_dtype, cpp_type, ...) \
+    case enum_dtype: {\
+        using scalar_t = cpp_type;\
+        return __VA_ARGS__();\
+    }
+
+#define TRAY_DISPATCH_ALL_TYPES(DTYPE, OP_NAME, ...) [&] { \
+    switch (DTYPE) {\
+        TRAY_DISPATCH_CASE(oven::DType::kFloat32, float, __VA_ARGS__)\
+        TRAY_DISPATCH_CASE(oven::DType::kFloat64, double, __VA_ARGS__)\
+        TRAY_DISPATCH_CASE(oven::DType::kInt64, int64_t, __VA_ARGS__)\
+        TRAY_DISPATCH_CASE(oven::DType::kInt32, int32_t, __VA_ARGS__)\
+        TRAY_DISPATCH_CASE(oven::DType::kBool, bool, __VA_ARGS__)\
+        default:\
+            OVEN_ASSERT(false, "No matching DType for following operator: " + OP_NAME);\
+    }\
+}()

@@ -1,12 +1,18 @@
-#include "oven/space/continuous.hpp"
-#include <format>
-#include <iostream>
-#include <oven/space/discrete.hpp>
+#include "oven/tray/types.hpp"
+#include <oven/tray/tray.hpp>
+#include <torch/csrc/autograd/generated/variable_factories.h>
+#include <torch/torch.h>
 
 int main() {
-    oven::environment::ContinuousSpace space(torch::tensor({1., 2., 3.}), torch::tensor({3., 4., 5.}));
+    oven::Tray tray1 = oven::zeros({1, 2}, oven::kBool);
 
-    std::cout << space.shape() << std::endl << space.sample() << std::endl << space.contains(torch::tensor({-1,2, 3}, torch::dtype(torch::kFloat32)));
-    
-    return 0;
+    std::cout << torch::from_blob(tray1.data().get(), tray1.shape(), torch::TensorOptions().dtype(torch::kBool)) << std::endl;
+
+    oven::Tray tray2 = oven::zeros({1, 2}, oven::kFloat32);
+
+    std::cout << torch::from_blob(static_cast<float*>(tray2.data().get()), tray2.shape()) << std::endl;
+
+    oven::Tray tray3 = oven::zeros({1, 2}, oven::kFloat64);
+
+    oven::Tray tray4 = oven::zeros({1, 2}, oven::kInt64);
 }

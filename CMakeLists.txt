@@ -11,9 +11,10 @@ set(TORCH_CUDA_ARCHITECTURES "8.9")
 set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/third-party/libtorch")
 
 add_library(oven SHARED
-    src/space/discrete.cpp
-    src/space/continuous.cpp
-    src/space/multidiscrete.cpp
+    src/tray/dispatcher.cpp
+    src/tray/traykernels.cpp
+    src/tray/trayconstructor.cpp
+    src/tray/tray.cpp
 )
 
 find_package(nlohmann_json REQUIRED)
