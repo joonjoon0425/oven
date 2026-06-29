@@ -28,16 +28,9 @@ Tray zeros(SmallVector shape, DType dtype, Device device) {
     return TRAY_DISPATCH_ALL_TYPES(dtype, "zeros", [&]{
         int64_t total_size = 1;
         for (int i = 0; i < shape.size(); i++) total_size *= shape[i];
-
-        // we used shared ptr as our dynamic storage
-        std::shared_ptr<void> data(
-                new scalar_t[total_size],
-                [](void* ptr){
-                    delete[] static_cast<scalar_t*>(ptr);
-                }
-            );
-        // it is important to make a custom deleter.
-        // now we set all bytes to 0, using the dispatcher
+        
+        std::shared_ptr<scalar_t> data(new scalar_t[total_size]);
+        
         detail::Dispatcher::get_instance()
         .dispatch<void(void*, size_t)>
             ({detail::OpCode::zeros, device}, data.get(), total_size * sizeof(scalar_t));

@@ -5,6 +5,7 @@
 #include <oven/tray/types.hpp>
 #include <oven/tray/trayimpl.hpp>
 #include <oven/utils/intrusive_ptr.hpp>
+#include <oven/tray/operations.hpp>
 
 namespace oven {
 
@@ -30,6 +31,14 @@ public:
     Tray operator-(const Tray& other) const;
     Tray operator*(const Tray& other) const;
     Tray operator/(const Tray& other) const;
+    // compare operators
+    Tray operator<(const Tray& other) const;
+    Tray operator<=(const Tray& other) const;
+    Tray operator>(const Tray& other) const;
+    Tray operator>=(const Tray& other) const;
+    Tray operator==(const Tray& other) const;
+    Tray operator!=(const Tray& other) const;
+    
 }; // class Tray
 
 // Tray Constructors

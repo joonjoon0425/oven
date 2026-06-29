@@ -14,6 +14,14 @@ enum class OpCode : uint16_t {
     div,
     matmul,
 
+    le,
+    leq,
+    ge,
+    geq,
+    eq,
+    neq,
+    ternery,
+
     zeros,
     ones,
     full,
