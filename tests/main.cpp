@@ -11,13 +11,22 @@ int main() {
     
     oven::SmallVector shape1 = {config.get<oven::SmallVector>("/shape1")};
     oven::SmallVector shape2 = {config.get<oven::SmallVector>("/shape2")};
-    float val = config.get<float>("/val");
+    float val1 = config.get<float>("/val1");
+    float val2 = config.get<float>("/val2");
 
-    oven::Tray tray1 = oven::ones(shape1, oven::kInt32);
-    oven::Tray tray2 = oven::full(shape2, val, oven::kInt32);
+    std::string op = config.get<std::string>("/op");
 
-    oven::Tray added = tray1 + tray2;
+    oven::Tray tray1 = oven::full(shape1, val1);
+    oven::Tray tray2 = oven::full(shape2, val2);
+    oven::Tray tray3;
 
-    std::cout << torch::from_blob(added.data().get(), added.shape(), torch::TensorOptions().dtype(torch::kInt32)) << std::endl;
+    if (op == "add") tray3 = tray1 + tray2;
+    else if (op == "sub") tray3 = tray1 - tray2;
+    else if (op == "mul") tray3 = tray1 * tray2;
+    else if (op == "div") tray3 = tray1 / tray2;
+
+    std::cout << torch::from_blob(tray1.data().get(), tray1.shape(), torch::TensorOptions().dtype(torch::kFloat32)) << std::endl;
+    std::cout << torch::from_blob(tray2.data().get(), tray2.shape(), torch::TensorOptions().dtype(torch::kFloat32)) << std::endl;
+    std::cout << torch::from_blob(tray3.data().get(), tray3.shape(), torch::TensorOptions().dtype(torch::kFloat32)) << std::endl;
     
 }

@@ -22,7 +22,7 @@ enum class OpCode : uint16_t {
     TOTAL
 };
 
-bool validate_operation(OpCode code, DType dtype);
+// bool validate_operation(OpCode code, DType dtype);
 
 struct DispatchKey {
     uint32_t key;
