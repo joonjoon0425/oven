@@ -10,63 +10,31 @@
 namespace oven {
 
 Tray add(const Tray& self, const Tray& other) {
-    std::optional<SmallVector> shape = detail::broadcastable(self.shape(), other.shape());
-    OVEN_ASSERT(shape != std::nullopt, "Not broadcastable for add operation.");
-    // later, make SmallerVector print function for debugging...
-    // checking logics for binary operation goes here...
-    OVEN_TRAY_BINOP_CHECKLIST(self, other);
-    // get broadcasted strides
-    auto a_stride = detail::get_broadcasted_stride(self.shape(), *shape);
-    auto b_stride = detail::get_broadcasted_stride(other.shape(), *shape);
     return detail::Dispatcher::get_instance()
-        .dispatch<oven::ElementWiseKernelType>
+        .dispatch<decltype(add)>
             ({detail::OpCode::add, self.device()},
-                self.data().get(), other.data().get(), a_stride, b_stride, *shape, self.dtype());
+                self, other);
 }
 
 Tray sub(const Tray& self, const Tray& other) {
-    std::optional<SmallVector> shape = detail::broadcastable(self.shape(), other.shape());
-    OVEN_ASSERT(shape != std::nullopt, "Not broadcastable for sub operation.");
-    // later, make SmallerVector print function for debugging...
-    // checking logics for binary operation goes here...
-    OVEN_TRAY_BINOP_CHECKLIST(self, other);
-    // get broadcasted strides
-    auto a_stride = detail::get_broadcasted_stride(self.shape(), *shape);
-    auto b_stride = detail::get_broadcasted_stride(other.shape(), *shape);
     return detail::Dispatcher::get_instance()
-        .dispatch<oven::ElementWiseKernelType>
+        .dispatch<decltype(sub)>
             ({detail::OpCode::sub, self.device()},
-                self.data().get(), other.data().get(), a_stride, b_stride, *shape, self.dtype());
+                self, other);
 }
 
 Tray mul(const Tray& self, const Tray& other) {
-    std::optional<SmallVector> shape = detail::broadcastable(self.shape(), other.shape());
-    OVEN_ASSERT(shape != std::nullopt, "Not broadcastable for mul operation.");
-    // later, make SmallerVector print function for debugging...
-    // checking logics for binary operation goes here...
-    OVEN_TRAY_BINOP_CHECKLIST(self, other);
-    // get broadcasted strides
-    auto a_stride = detail::get_broadcasted_stride(self.shape(), *shape);
-    auto b_stride = detail::get_broadcasted_stride(other.shape(), *shape);
     return detail::Dispatcher::get_instance()
-        .dispatch<oven::ElementWiseKernelType>
+        .dispatch<decltype(mul)>
             ({detail::OpCode::mul, self.device()},
-                self.data().get(), other.data().get(), a_stride, b_stride, *shape, self.dtype());
+                self, other);
 }
 
 Tray div(const Tray& self, const Tray& other) {
-    std::optional<SmallVector> shape = detail::broadcastable(self.shape(), other.shape());
-    OVEN_ASSERT(shape != std::nullopt, "Not broadcastable for div operation.");
-    // later, make SmallerVector print function for debugging...
-    // checking logics for binary operation goes here...
-    OVEN_TRAY_BINOP_CHECKLIST(self, other);
-    // get broadcasted strides
-    auto a_stride = detail::get_broadcasted_stride(self.shape(), *shape);
-    auto b_stride = detail::get_broadcasted_stride(other.shape(), *shape);
     return detail::Dispatcher::get_instance()
-        .dispatch<oven::ElementWiseKernelType>
+        .dispatch<decltype(div)>
             ({detail::OpCode::div, self.device()},
-                self.data().get(), other.data().get(), a_stride, b_stride, *shape, self.dtype());
+                self, other);
 }
 
 Tray le(const Tray& self, const Tray& other) {

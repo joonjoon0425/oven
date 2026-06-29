@@ -12,14 +12,19 @@
 namespace oven {
 
 template <typename T, typename BinOp>
-void __cpu_binary_elementwise_kernel_template(T* a, T* b, T* c, const SmallVector& a_stride, const SmallVector& b_stride, const SmallVector& shape, BinOp&& op) {
+void __cpu_binary_elementwise_kernel_template(T* c, const SmallVector& c_shape, const Tray& a, const Tray& b, BinOp&& op) {
     // I wish I could use openMP or any parallel techniques here!
-    SmallVector c_stride = detail::compute_stride(shape);
+    SmallVector c_stride = detail::compute_stride(c_shape);
     SmallVector coord(c_stride.size(), 0);
-    int64_t total_size = c_stride[0] * shape[0];
+    int64_t total_size = c_stride[0] * c_shape[0];
+    SmallVector a_stride = detail::get_broadcasted_stride(a.shape(), c_shape);
+    SmallVector b_stride = detail::get_broadcasted_stride(b.shape(), c_shape);
     
     int64_t a_index = 0;
     int64_t b_index = 0;
+
+    T* a_data = static_cast<T*>(a.data().get());
+    T* b_data = static_cast<T*>(b.data().get());
 
     for(int64_t i = 0; i < total_size; i++) {
         // reset coord vector
@@ -27,7 +32,7 @@ void __cpu_binary_elementwise_kernel_template(T* a, T* b, T* c, const SmallVecto
         detail::compute_coordinate(i, c_stride, coord);
         a_index = detail::compute_index(coord, a_stride);
         b_index = detail::compute_index(coord, b_stride);
-        c[i] = op(a[a_index], b[b_index]);
+        c[i] = op(a_data[a_index], b_data[b_index]);
     }
 }
 
@@ -91,51 +96,47 @@ void __cpu_gather_kernel_template(const Tray& self, int64_t dim, const Tray& ind
     
 }
 
-Tray __cpu_add_kernel(void* a, void* b, const SmallVector& a_stride, const SmallVector& b_stride, const SmallVector& shape, DType dtype) {
-    int64_t total_size = 1;
-    for (int64_t i = 0; i < shape.size(); i++) total_size *= shape[i];
-    return TRAY_DISPATCH_NONBOOL_TYPES(dtype, "add", [&]{
+Tray __cpu_add_kernel(const Tray& a, const Tray& b) {
+    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "add");
+    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "add", [&]{
         using T = scalar_t;
-        std::shared_ptr<scalar_t> data(new scalar_t[total_size]);
+        std::shared_ptr<scalar_t> data(new scalar_t[detail::compute_numel(broadcast_shape)]);
 
-        __cpu_binary_elementwise_kernel_template(static_cast<T*>(a), static_cast<T*>(b), data.get(), a_stride, b_stride, shape, [](T a, T b) {return a + b;});
-        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), dtype, Device::CPU, data));
+        __cpu_binary_elementwise_kernel_template(data.get(), broadcast_shape, a, b, [](T a, T b) {return a + b;});
+        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), a.dtype(), Device::CPU, data));
     });
 }
 
-Tray __cpu_sub_kernel(void* a, void* b, const SmallVector& a_stride, const SmallVector& b_stride, const SmallVector& shape, DType dtype) {
-    int64_t total_size = 1;
-    for (int64_t i = 0; i < shape.size(); i++) total_size *= shape[i];
-    return TRAY_DISPATCH_NONBOOL_TYPES(dtype, "sub", [&]{
+Tray __cpu_sub_kernel(const Tray& a, const Tray& b) {
+    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "sub");
+    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "sub", [&]{
         using T = scalar_t;
-        std::shared_ptr<scalar_t> data(new scalar_t[total_size]);
-        
-        __cpu_binary_elementwise_kernel_template(static_cast<T*>(a), static_cast<T*>(b), data.get(), a_stride, b_stride, shape, [](T a, T b) {return a - b;});
-        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), dtype, Device::CPU, data));
+        std::shared_ptr<scalar_t> data(new scalar_t[detail::compute_numel(broadcast_shape)]);
+
+        __cpu_binary_elementwise_kernel_template(data.get(), broadcast_shape, a, b, [](T a, T b) {return a - b;});
+        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), a.dtype(), Device::CPU, data));
     });
 }
 
-Tray __cpu_div_kernel(void* a, void* b, const SmallVector& a_stride, const SmallVector& b_stride, const SmallVector& shape, DType dtype) {
-    int64_t total_size = 1;
-    for (int64_t i = 0; i < shape.size(); i++) total_size *= shape[i];
-    return TRAY_DISPATCH_NONBOOL_TYPES(dtype, "div", [&]{
+Tray __cpu_div_kernel(const Tray& a, const Tray& b) {
+    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "div");
+    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "div", [&]{
         using T = scalar_t;
-        std::shared_ptr<scalar_t> data(new scalar_t[total_size]);
-        
-        __cpu_binary_elementwise_kernel_template(static_cast<T*>(a), static_cast<T*>(b), data.get(), a_stride, b_stride, shape, [](T a, T b) {return a / b;});
-        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), dtype, Device::CPU, data));
+        std::shared_ptr<scalar_t> data(new scalar_t[detail::compute_numel(broadcast_shape)]);
+
+        __cpu_binary_elementwise_kernel_template(data.get(), broadcast_shape, a, b, [](T a, T b) {return a / b;});
+        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), a.dtype(), Device::CPU, data));
     });
 }
 
-Tray __cpu_mul_kernel(void* a, void* b, const SmallVector& a_stride, const SmallVector& b_stride, const SmallVector& shape, DType dtype) {
-    int64_t total_size = 1;
-    for (int64_t i = 0; i < shape.size(); i++) total_size *= shape[i];
-    return TRAY_DISPATCH_ALL_TYPES(dtype, "mul", [&]{
+Tray __cpu_mul_kernel(const Tray& a, const Tray& b) {
+    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "mul");
+    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "mul", [&]{
         using T = scalar_t;
-        std::shared_ptr<scalar_t> data(new scalar_t[total_size]);
-        
-        __cpu_binary_elementwise_kernel_template(static_cast<T*>(a), static_cast<T*>(b), data.get(), a_stride, b_stride, shape, [](T a, T b) {return a * b;});
-        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), dtype, Device::CPU, data));
+        std::shared_ptr<scalar_t> data(new scalar_t[detail::compute_numel(broadcast_shape)]);
+
+        __cpu_binary_elementwise_kernel_template(data.get(), broadcast_shape, a, b, [](T a, T b) {return a * b;});
+        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), a.dtype(), Device::CPU, data));
     });
 }
 

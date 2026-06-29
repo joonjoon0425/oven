@@ -1,5 +1,5 @@
 #include <oven/tray/utils.hpp>
-
+#include <oven/tray/tray.hpp>
 #include <optional>
 
 namespace oven::detail {
@@ -72,3 +72,13 @@ int64_t compute_numel(const SmallVector &shape) {
 }
 
 }// namespace oven::detail
+
+oven::SmallVector CHECK_BINARY_BROADCAST(const oven::Tray& self, const oven::Tray& other, std::string op) {
+    std::optional<oven::SmallVector> shape = oven::detail::broadcastable(self.shape(), other.shape());
+    OVEN_ASSERT(shape != std::nullopt, "Not broadcastable for " + op + " operation.");
+    // later, make SmallerVector print function for debugging...
+    // checking logics for binary operation goes here...
+    OVEN_TRAY_BINOP_CHECKLIST(self, other);
+
+    return *shape;
+}
