@@ -47,6 +47,7 @@ Tray zeros(const SmallVector& shape, DType dtype = oven::kFloat32, Device device
 Tray ones(const SmallVector& shape, DType dtype = oven::kFloat32, Device device = Device::CPU);
 Tray full(const SmallVector& shape, Scalar val, DType dtype = oven::DType::Undefined, Device device = Device::CPU);
 // random
-Tray rand(const SmallVector& shape, DType dtype = oven::kFloat32, Device device = Device::CPU);
-
+Tray rand(const SmallVector& shape, Scalar low = 0., Scalar high = 1., DType dtype = oven::kFloat32, Device device = Device::CPU);
+Tray randint(const SmallVector& shape, Scalar low, Scalar high, DType dtype = oven::DType::kInt64, Device device = Device::CPU);
+Tray randn(const SmallVector& shape, Scalar mean = 0., Scalar std = 1., DType dtype = oven::DType::kFloat32, Device device = Device::CPU);
 } // namespace oven
