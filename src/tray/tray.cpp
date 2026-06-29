@@ -28,6 +28,10 @@ const Device& Tray::device() const {
     return impl_->device_;
 }
 
+const int64_t Tray::numel() const {
+    return impl_->numel_;
+}
+
 const std::shared_ptr<void> Tray::data() const {
     return impl_->data_;
 }

@@ -26,6 +26,7 @@ public:
     const DType& dtype() const;
     const Device& device() const;
     const std::shared_ptr<void> data() const;
+    const int64_t numel() const;
 
     // arithmetic operators
     Tray operator+(const Tray& other) const;

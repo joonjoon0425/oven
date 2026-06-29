@@ -15,4 +15,6 @@ Tray eq(const Tray& self, const Tray& other);
 Tray neq(const Tray& self, const Tray& other);
 
 Tray where(const Tray& predicate, const Tray& self, const Tray& other);
+
+Tray gather(const Tray& self, int64_t dim, const Tray& index);
 }

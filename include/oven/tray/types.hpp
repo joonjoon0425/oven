@@ -18,7 +18,6 @@ inline constexpr DType kFloat64 = DType::kFloat64;
 using Scalar = std::variant<bool, int32_t, int64_t, float, double>;
 using SmallVector = std::vector<int64_t>;
 
-using ElementWiseKernelType = Tray(void*, void*, const SmallVector&, const SmallVector&, const SmallVector&, DType);
 using TerneryKernelType = Tray(bool*, void*, void*, const SmallVector&, const SmallVector&, const SmallVector&, const SmallVector&, DType);
 
 }// namespace oven

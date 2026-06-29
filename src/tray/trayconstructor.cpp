@@ -36,7 +36,7 @@ void __cpu_rand_kernel_template(T* data, int64_t size, Args&&... args) {
 
 Tray __cpu_rand(const SmallVector& shape, Scalar low, Scalar high, DType dtype) {
     return TRAY_DISPATCH_FLOAT_TYPES(dtype, "rand", [&]{
-        auto n = detail::compute_n_elements(shape);
+        auto n = detail::compute_numel(shape);
         std::shared_ptr<scalar_t> data(new scalar_t[n]);
         std::visit([&](const auto& v){
             using T = std::decay_t<decltype(v)>;
@@ -52,7 +52,7 @@ Tray __cpu_rand(const SmallVector& shape, Scalar low, Scalar high, DType dtype) 
 
 Tray __cpu_randn(const SmallVector& shape, Scalar mean, Scalar std, DType dtype) {
     return TRAY_DISPATCH_FLOAT_TYPES(dtype, "randn", [&]{
-        auto n = detail::compute_n_elements(shape);
+        auto n = detail::compute_numel(shape);
         std::shared_ptr<scalar_t> data(new scalar_t[n]);
         std::visit([&](const auto& v){
             using T = std::decay_t<decltype(v)>;
@@ -68,7 +68,7 @@ Tray __cpu_randn(const SmallVector& shape, Scalar mean, Scalar std, DType dtype)
 
 Tray __cpu_randint(const SmallVector&shape, Scalar low, Scalar high, DType dtype) {
     return TRAY_DISPATCH_INT_TYPES(dtype, "randint", [&]{
-        auto n = detail::compute_n_elements(shape);
+        auto n = detail::compute_numel(shape);
         std::shared_ptr<scalar_t> data(new scalar_t[n]);
         std::visit([&](const auto& v){
             using T = std::decay_t<decltype(v)>;

@@ -30,6 +30,8 @@ enum class OpCode : uint16_t {
     randn,
     empty,
 
+    gather,
+
     TOTAL
 };
 

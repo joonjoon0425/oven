@@ -16,6 +16,7 @@ public:
         OVEN_ASSERT(file.is_open(), "Failed to open config file: " + path + "\nCurrent directory is: " + std::filesystem::current_path().string());
 
         file >> json_data_;
+        file.close();
     }
 
     template <typename T>
