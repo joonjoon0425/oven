@@ -8,6 +8,8 @@
 #include <oven/utils/configuration.hpp>
 #include <torch/types.h>
 
+#include <fstream>
+
 torch::Dtype tt(oven::DType type) {
     if (type == oven::kBool) return torch::kBool;
     else if (type == oven::kInt32) return torch::kInt32;
@@ -24,6 +26,9 @@ int main() {
     oven::Configuration config;
     config.open("../tests/config.json");
     
+    std::ofstream fout("../tests/output.txt", std::ios::app);
+    std::ifstream file("../tests/config.json");
+
     oven::SmallVector shape1 = {config.get<oven::SmallVector>("/shape1")};
     oven::SmallVector shape2 = {config.get<oven::SmallVector>("/shape2")};
     float val1 = config.get<float>("/val1");
@@ -35,7 +40,7 @@ int main() {
     oven::Tray tray1;
     oven::Tray tray2;
     oven::Tray tray3;
-    oven::Tray tray4;
+    oven::Tray tray4 = oven::ones({1, 2, 3});
 
     if (rd == "u_real") {
         tray1 = oven::rand(shape1, config.get<float>("/rd/l"), config.get<float>("/rd/h"));
@@ -62,8 +67,12 @@ int main() {
         tray4 = oven::where(tray3, tray1, tray2);
     }
 
-    std::cout << toTorch(tray1) << std::endl;
-    std::cout << toTorch(tray2) << std::endl;
-    std::cout << toTorch(tray3) << std::endl;
-    std::cout << toTorch(tray4) << std::endl;
+    fout << toTorch(tray1) << std::endl;
+    fout << toTorch(tray2) << std::endl;
+    fout << toTorch(tray3) << std::endl;
+    fout << toTorch(tray4) << std::endl;
+    fout << file.rdbuf();
+
+    fout.close();
+    file.close();
 }

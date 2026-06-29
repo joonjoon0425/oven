@@ -3,10 +3,10 @@
     "shape2": [4,1,4,5],
     "val1": 2,
     "val2": 10,
-    "op": "sub",
+    "op": "neq",
     "rd": {
-        "name": "u_int",
-        "l": -100,
-        "h": 10
+        "name": "normal",
+        "mean": 4,
+        "std": 1
     }
 }

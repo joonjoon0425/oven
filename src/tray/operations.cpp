@@ -38,75 +38,45 @@ Tray div(const Tray& self, const Tray& other) {
 }
 
 Tray le(const Tray& self, const Tray& other) {
-    std::optional<SmallVector> shape = detail::broadcastable(self.shape(), other.shape());
-    OVEN_ASSERT(shape != std::nullopt, "Not broadcastable for < operation.");
-    OVEN_TRAY_BINOP_CHECKLIST(self, other);
-    auto a_stride = detail::get_broadcasted_stride(self.shape(), *shape);
-    auto b_stride = detail::get_broadcasted_stride(other.shape(), *shape);
     return detail::Dispatcher::get_instance()
-        .dispatch<oven::ElementWiseKernelType>
+        .dispatch<decltype(le)>
             ({detail::OpCode::le, self.device()},
-                self.data().get(), other.data().get(), a_stride, b_stride, *shape, self.dtype());
+                self, other);
 }
 
 Tray leq(const Tray& self, const Tray& other) {
-    std::optional<SmallVector> shape = detail::broadcastable(self.shape(), other.shape());
-    OVEN_ASSERT(shape != std::nullopt, "Not broadcastable for <= operation.");
-    OVEN_TRAY_BINOP_CHECKLIST(self, other);
-    auto a_stride = detail::get_broadcasted_stride(self.shape(), *shape);
-    auto b_stride = detail::get_broadcasted_stride(other.shape(), *shape);
     return detail::Dispatcher::get_instance()
-        .dispatch<oven::ElementWiseKernelType>
+        .dispatch<decltype(leq)>
             ({detail::OpCode::leq, self.device()},
-                self.data().get(), other.data().get(), a_stride, b_stride, *shape, self.dtype());
+                self, other);
 }
 
 Tray ge(const Tray& self, const Tray& other) {
-    std::optional<SmallVector> shape = detail::broadcastable(self.shape(), other.shape());
-    OVEN_ASSERT(shape != std::nullopt, "Not broadcastable for > operation.");
-    OVEN_TRAY_BINOP_CHECKLIST(self, other);
-    auto a_stride = detail::get_broadcasted_stride(self.shape(), *shape);
-    auto b_stride = detail::get_broadcasted_stride(other.shape(), *shape);
     return detail::Dispatcher::get_instance()
-        .dispatch<oven::ElementWiseKernelType>
+        .dispatch<decltype(ge)>
             ({detail::OpCode::ge, self.device()},
-                self.data().get(), other.data().get(), a_stride, b_stride, *shape, self.dtype());
+                self, other);
 }
 
 Tray geq(const Tray& self, const Tray& other) {
-    std::optional<SmallVector> shape = detail::broadcastable(self.shape(), other.shape());
-    OVEN_ASSERT(shape != std::nullopt, "Not broadcastable for >= operation.");
-    OVEN_TRAY_BINOP_CHECKLIST(self, other);
-    auto a_stride = detail::get_broadcasted_stride(self.shape(), *shape);
-    auto b_stride = detail::get_broadcasted_stride(other.shape(), *shape);
     return detail::Dispatcher::get_instance()
-        .dispatch<oven::ElementWiseKernelType>
+        .dispatch<decltype(geq)>
             ({detail::OpCode::geq, self.device()},
-                self.data().get(), other.data().get(), a_stride, b_stride, *shape, self.dtype());
+                self, other);
 }
 
 Tray eq(const Tray& self, const Tray& other) {
-    std::optional<SmallVector> shape = detail::broadcastable(self.shape(), other.shape());
-    OVEN_ASSERT(shape != std::nullopt, "Not broadcastable for == operation.");
-    OVEN_TRAY_BINOP_CHECKLIST(self, other);
-    auto a_stride = detail::get_broadcasted_stride(self.shape(), *shape);
-    auto b_stride = detail::get_broadcasted_stride(other.shape(), *shape);
     return detail::Dispatcher::get_instance()
-        .dispatch<oven::ElementWiseKernelType>
+        .dispatch<decltype(eq)>
             ({detail::OpCode::eq, self.device()},
-                self.data().get(), other.data().get(), a_stride, b_stride, *shape, self.dtype());
+                self, other);
 }
 
 Tray neq(const Tray& self, const Tray& other) {
-    std::optional<SmallVector> shape = detail::broadcastable(self.shape(), other.shape());
-    OVEN_ASSERT(shape != std::nullopt, "Not broadcastable for != operation.");
-    OVEN_TRAY_BINOP_CHECKLIST(self, other);
-    auto a_stride = detail::get_broadcasted_stride(self.shape(), *shape);
-    auto b_stride = detail::get_broadcasted_stride(other.shape(), *shape);
     return detail::Dispatcher::get_instance()
-        .dispatch<oven::ElementWiseKernelType>
+        .dispatch<decltype(le)>
             ({detail::OpCode::neq, self.device()},
-                self.data().get(), other.data().get(), a_stride, b_stride, *shape, self.dtype());
+                self, other);
 }
 
 Tray where(const Tray& predicate, const Tray& self, const Tray& other) {

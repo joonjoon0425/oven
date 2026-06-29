@@ -38,14 +38,19 @@ void __cpu_binary_elementwise_kernel_template(T* c, const SmallVector& c_shape, 
 
 template <typename T, typename CompOp>
 requires std::predicate<CompOp, T, T>
-void __cpu_binary_compare_kernel_template(T* a, T* b, bool* c, const SmallVector& a_stride, const SmallVector& b_stride, const SmallVector& shape, CompOp&& op) {
+void __cpu_binary_compare_kernel_template(bool* c, const Tray& a, const Tray& b, const SmallVector& c_shape, CompOp&& op) {
     // I wish I could use openMP or any parallel techniques here!
-    SmallVector c_stride = detail::compute_stride(shape);
+    SmallVector c_stride = detail::compute_stride(c_shape);
     SmallVector coord(c_stride.size(), 0);
-    int64_t total_size = c_stride[0] * shape[0];
+    int64_t total_size = c_stride[0] * c_shape[0];
+    SmallVector a_stride = detail::get_broadcasted_stride(a.shape(), c_shape);
+    SmallVector b_stride = detail::get_broadcasted_stride(b.shape(), c_shape);
     
     int64_t a_index = 0;
     int64_t b_index = 0;
+
+    T* a_data = static_cast<T*>(a.data().get());
+    T* b_data = static_cast<T*>(b.data().get());
 
     for(int64_t i = 0; i < total_size; i++) {
         // reset coord vector
@@ -53,7 +58,7 @@ void __cpu_binary_compare_kernel_template(T* a, T* b, bool* c, const SmallVector
         detail::compute_coordinate(i, c_stride, coord);
         a_index = detail::compute_index(coord, a_stride);
         b_index = detail::compute_index(coord, b_stride);
-        c[i] = op(a[a_index], b[b_index]);
+        c[i] = op(a_data[a_index], b_data[b_index]);
     }
 }
 
@@ -140,69 +145,63 @@ Tray __cpu_mul_kernel(const Tray& a, const Tray& b) {
     });
 }
 
-Tray __cpu_le_kernel(void* a, void* b, const SmallVector& a_stride, const SmallVector& b_stride, const SmallVector& shape, DType dtype) {
-    int64_t total_size = 1;
-    for (int64_t i = 0; i < shape.size(); i++) total_size *= shape[i];
-    return TRAY_DISPATCH_NONBOOL_TYPES(dtype, "le", [&] {
-        std::shared_ptr<bool> data(new bool[total_size]);
+Tray __cpu_le_kernel(const Tray& a, const Tray& b) {
+    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "le");
+    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "le", [&] {
+        std::shared_ptr<bool> data(new bool[detail::compute_numel(broadcast_shape)]);
 
-        __cpu_binary_compare_kernel_template(static_cast<scalar_t*>(a), static_cast<scalar_t*>(b), data.get(), a_stride, b_stride, shape, [](scalar_t a, scalar_t b) {return a < b;});
-        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), oven::kBool, Device::CPU, data));
+        __cpu_binary_compare_kernel_template<scalar_t>(data.get(), a, b, broadcast_shape, [](scalar_t a, scalar_t b) {return a < b;});
+        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), oven::kBool, Device::CPU, data));
     });
 }
 
-Tray __cpu_leq_kernel(void* a, void* b, const SmallVector& a_stride, const SmallVector& b_stride, const SmallVector& shape, DType dtype) {
-    int64_t total_size = 1;
-    for (int64_t i = 0; i < shape.size(); i++) total_size *= shape[i];
-    return TRAY_DISPATCH_NONBOOL_TYPES(dtype, "le", [&] {
-        std::shared_ptr<bool> data(new bool[total_size]);
+Tray __cpu_leq_kernel(const Tray& a, const Tray& b) {
+    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "leq");
+    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "leq", [&] {
+        std::shared_ptr<bool> data(new bool[detail::compute_numel(broadcast_shape)]);
 
-        __cpu_binary_compare_kernel_template(static_cast<scalar_t*>(a), static_cast<scalar_t*>(b), data.get(), a_stride, b_stride, shape, [](scalar_t a, scalar_t b) {return a <= b;});
-        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), oven::kBool, Device::CPU, data));
+        __cpu_binary_compare_kernel_template<scalar_t>(data.get(), a, b, broadcast_shape, [](scalar_t a, scalar_t b) {return a <= b;});
+        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), oven::kBool, Device::CPU, data));
     });
 }
 
-Tray __cpu_ge_kernel(void* a, void* b, const SmallVector& a_stride, const SmallVector& b_stride, const SmallVector& shape, DType dtype) {
-    int64_t total_size = 1;
-    for (int64_t i = 0; i < shape.size(); i++) total_size *= shape[i];
-    return TRAY_DISPATCH_NONBOOL_TYPES(dtype, "le", [&] {
-        std::shared_ptr<bool> data(new bool[total_size]);
+Tray __cpu_ge_kernel(const Tray& a, const Tray& b) {
+    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "ge");
+    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "ge", [&] {
+        std::shared_ptr<bool> data(new bool[detail::compute_numel(broadcast_shape)]);
 
-        __cpu_binary_compare_kernel_template(static_cast<scalar_t*>(a), static_cast<scalar_t*>(b), data.get(), a_stride, b_stride, shape, [](scalar_t a, scalar_t b) {return a > b;});
-        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), oven::kBool, Device::CPU, data));
+        __cpu_binary_compare_kernel_template<scalar_t>(data.get(), a, b, broadcast_shape, [](scalar_t a, scalar_t b) {return a > b;});
+        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), oven::kBool, Device::CPU, data));
     });
 }
 
-Tray __cpu_geq_kernel(void* a, void* b, const SmallVector& a_stride, const SmallVector& b_stride, const SmallVector& shape, DType dtype) {
-    int64_t total_size = 1;
-    for (int64_t i = 0; i < shape.size(); i++) total_size *= shape[i];
-    return TRAY_DISPATCH_NONBOOL_TYPES(dtype, "le", [&] {
-        std::shared_ptr<bool> data(new bool[total_size]);
+Tray __cpu_geq_kernel(const Tray& a, const Tray& b) {
+    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "geq");
+    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "geq", [&] {
+        std::shared_ptr<bool> data(new bool[detail::compute_numel(broadcast_shape)]);
 
-        __cpu_binary_compare_kernel_template(static_cast<scalar_t*>(a), static_cast<scalar_t*>(b), data.get(), a_stride, b_stride, shape, [](scalar_t a, scalar_t b) {return a >= b;});
-        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), oven::kBool, Device::CPU, data));
+        __cpu_binary_compare_kernel_template<scalar_t>(data.get(), a, b, broadcast_shape, [](scalar_t a, scalar_t b) {return a >= b;});
+        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), oven::kBool, Device::CPU, data));
     });
 }
 
-Tray __cpu_eq_kernel(void* a, void* b, const SmallVector& a_stride, const SmallVector& b_stride, const SmallVector& shape, DType dtype) {
-    int64_t total_size = 1;
-    for (int64_t i = 0; i < shape.size(); i++) total_size *= shape[i];
-    return TRAY_DISPATCH_NONBOOL_TYPES(dtype, "le", [&] {
-        std::shared_ptr<bool> data(new bool[total_size]);
+Tray __cpu_eq_kernel(const Tray& a, const Tray& b) {
+    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "eq");
+    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "eq", [&] {
+        std::shared_ptr<bool> data(new bool[detail::compute_numel(broadcast_shape)]);
 
-        __cpu_binary_compare_kernel_template(static_cast<scalar_t*>(a), static_cast<scalar_t*>(b), data.get(), a_stride, b_stride, shape, [](scalar_t a, scalar_t b) {return a == b;});
-        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), oven::kBool, Device::CPU, data));
+        __cpu_binary_compare_kernel_template<scalar_t>(data.get(), a, b, broadcast_shape, [](scalar_t a, scalar_t b) {return a == b;});
+        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), oven::kBool, Device::CPU, data));
     });
 }
 
-Tray __cpu_neq_kernel(void* a, void* b, const SmallVector& a_stride, const SmallVector& b_stride, const SmallVector& shape, DType dtype) {
-    int64_t total_size = 1;
-    for (int64_t i = 0; i < shape.size(); i++) total_size *= shape[i];
-    return TRAY_DISPATCH_NONBOOL_TYPES(dtype, "le", [&] {
-        std::shared_ptr<bool> data(new bool[total_size]);
+Tray __cpu_neq_kernel(const Tray& a, const Tray& b) {
+    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "neq");
+    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "neq", [&] {
+        std::shared_ptr<bool> data(new bool[detail::compute_numel(broadcast_shape)]);
 
-        __cpu_binary_compare_kernel_template(static_cast<scalar_t*>(a), static_cast<scalar_t*>(b), data.get(), a_stride, b_stride, shape, [](scalar_t a, scalar_t b) {return a != b;});
-        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), oven::kBool, Device::CPU, data));
+        __cpu_binary_compare_kernel_template<scalar_t>(data.get(), a, b, broadcast_shape, [](scalar_t a, scalar_t b) {return a != b;});
+        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), oven::kBool, Device::CPU, data));
     });
 }
 
