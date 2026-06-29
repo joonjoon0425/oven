@@ -6,7 +6,6 @@
 #include <oven/utils/intrusive_ptr.hpp>
 
 namespace oven {
-using SmallVector = std::vector<int64_t>;
 class Tray;
 
 class TrayImpl : public RefCountable {

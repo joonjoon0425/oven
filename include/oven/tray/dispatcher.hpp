@@ -22,6 +22,8 @@ enum class OpCode : uint16_t {
     TOTAL
 };
 
+bool validate_operation(OpCode code, DType dtype);
+
 struct DispatchKey {
     uint32_t key;
 
@@ -97,6 +99,35 @@ struct KernelRegistration {
         TRAY_DISPATCH_CASE(oven::DType::kInt64, int64_t, __VA_ARGS__)\
         TRAY_DISPATCH_CASE(oven::DType::kInt32, int32_t, __VA_ARGS__)\
         TRAY_DISPATCH_CASE(oven::DType::kBool, bool, __VA_ARGS__)\
+        default:\
+            OVEN_ASSERT(false, "No matching DType for following operator: " + OP_NAME);\
+    }\
+}()
+
+#define TRAY_DISPATCH_INT_TYPES(DTYPE, OP_NAME, ...) [&] { \
+    switch (DTYPE) {\
+        TRAY_DISPATCH_CASE(oven::DType::kInt64, int64_t, __VA_ARGS__)\
+        TRAY_DISPATCH_CASE(oven::DType::kInt32, int32_t, __VA_ARGS__)\
+        default:\
+            OVEN_ASSERT(false, "No matching DType for following operator: " + OP_NAME);\
+    }\
+}()
+
+#define TRAY_DISPATCH_FLOAT_TYPES(DTYPE, OP_NAME, ...) [&] { \
+    switch (DTYPE) {\
+        TRAY_DISPATCH_CASE(oven::DType::kFloat32, float, __VA_ARGS__)\
+        TRAY_DISPATCH_CASE(oven::DType::KFloat64, double, __VA_ARGS__)\
+        default:\
+            OVEN_ASSERT(false, "No matching DType for following operator: " + OP_NAME);\
+    }\
+}()
+
+#define TRAY_DISPATCH_NONBOOL_TYPES(DTYPE, OP_NAME, ...) [&] { \
+    switch (DTYPE) {\
+        TRAY_DISPATCH_CASE(oven::DType::kInt64, int64_t, __VA_ARGS__)\
+        TRAY_DISPATCH_CASE(oven::DType::kInt32, int32_t, __VA_ARGS__)\
+        TRAY_DISPATCH_CASE(oven::DType::kFloat32, float, __VA_ARGS__)\
+        TRAY_DISPATCH_CASE(oven::DType::kFloat64, double, __VA_ARGS__)\
         default:\
             OVEN_ASSERT(false, "No matching DType for following operator: " + OP_NAME);\
     }\

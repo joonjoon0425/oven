@@ -4,6 +4,7 @@
 #include <cstring>
 #include <memory>
 #include <oven/tray/tray.hpp>
+#include <oven/tray/utils.hpp>
 #include <oven/tray/dispatcher.hpp>
 #include <variant>
 

@@ -8,19 +8,15 @@
 
 namespace oven {
 
-namespace detail {
-    // helper function for computing stride from given shape
-    SmallVector compute_stride(const SmallVector& shape);
-}
-
 class TrayImpl;
 
-// A simple numpy-like object
+// A simple numpy-like object <--- It's not simple anymore....
 class Tray {
 private:
     intrusive_ptr<TrayImpl> impl_;
     
 public:
+    Tray(){ impl_ = nullptr;};
     Tray(intrusive_ptr<TrayImpl> impl);
     const SmallVector& shape() const;
     const SmallVector& stride() const;
@@ -28,8 +24,15 @@ public:
     const DType& dtype() const;
     const Device& device() const;
     const std::shared_ptr<void> data() const;
+
+    // arithmetic operators
+    Tray operator+(const Tray& other) const;
+    Tray operator-(const Tray& other) const;
+    Tray operator*(const Tray& other) const;
+    Tray operator/(const Tray& other) const;
 }; // class Tray
 
+// Tray Constructors
 Tray zeros(SmallVector shape, DType dtype = oven::kFloat32, Device device = Device::CPU);
 Tray ones(SmallVector shape, DType dtype = oven::kFloat32, Device device = Device::CPU);
 Tray full(SmallVector shape, Scalar val, DType dtype = oven::kFloat32, Device device = Device::CPU);

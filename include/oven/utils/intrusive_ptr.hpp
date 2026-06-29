@@ -85,6 +85,11 @@ public:
         return *this;
     }
 
+    intrusive_ptr operator=(std::nullptr_t) {
+        ptr_ = nullptr;
+        return (*this);
+    }
+
     ~intrusive_ptr(){ release(); }
 
     T* operator->() const noexcept {return ptr_;}

@@ -16,6 +16,7 @@ add_library(oven SHARED
     src/tray/trayconstructor.cpp
     src/tray/tray.cpp
     src/tray/trayimpl.cpp
+    src/tray/utils.cpp
 )
 
 find_package(nlohmann_json REQUIRED)
