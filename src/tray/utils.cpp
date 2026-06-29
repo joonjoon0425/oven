@@ -65,7 +65,7 @@ SmallVector get_broadcasted_stride(const SmallVector& shape, const SmallVector& 
     return ret;
 }
 
-int64_t compute_n_elements(const SmallVector &shape) {
+int64_t compute_numel(const SmallVector &shape) {
     int64_t ret = 1;
     for (int64_t i = 0; i < shape.size(); i++) ret *= shape[i];
     return ret;

@@ -7,6 +7,7 @@
 #include <oven/tray/tray.hpp>
 #include <oven/tray/utils.hpp>
 #include <oven/tray/dispatcher.hpp>
+#include <type_traits>
 
 namespace oven {
 
@@ -52,7 +53,7 @@ void __cpu_binary_compare_kernel_template(T* a, T* b, bool* c, const SmallVector
 }
 
 template <typename T>
-void __cpu_ternery_compare_kernel_template(bool* c, T* a, T* b, T* result, const SmallVector& a_stride, const SmallVector& b_stride, const SmallVector& c_stride, const SmallVector& shape) {
+void __cpu_ternery_kernel_template(bool* c, T* a, T* b, T* result, const SmallVector& a_stride, const SmallVector& b_stride, const SmallVector& c_stride, const SmallVector& shape) {
     SmallVector result_stride = detail::compute_stride(shape);
     SmallVector coord(result_stride.size(), 0);
     int64_t total_size = result_stride[0] * shape[0];
@@ -69,6 +70,25 @@ void __cpu_ternery_compare_kernel_template(bool* c, T* a, T* b, T* result, const
         c_index = detail::compute_index(coord, c_stride);
         result[i] = c[c_index] ? a[a_index] : b[b_index];
     }
+}
+
+template <typename T>
+void __cpu_gather_kernel_template(const Tray& self, int64_t dim, const Tray& index, T* target) {
+    TRAY_DISPATCH_INT_TYPES(index.dtype(), "__cpu_gather_kernel_template", [&] {
+        const SmallVector& index_stride = index.stride();
+        const SmallVector& self_stride = self.stride();
+        SmallVector coord(index_stride.size(), 0);
+        int64_t numel = index.numel();
+        int64_t self_index = 0;
+        for (int64_t i = 0; i < numel; i++) {
+            coord.assign(coord.size(), 0);
+            detail::compute_coordinate(i, index_stride, coord);
+            coord[dim] = static_cast<scalar_t*>(index.data().get())[i];
+            self_index = detail::compute_index(coord, self_stride);
+            target[i] = static_cast<T*>(self.data().get())[self_index];
+        }
+    });
+    
 }
 
 Tray __cpu_add_kernel(void* a, void* b, const SmallVector& a_stride, const SmallVector& b_stride, const SmallVector& shape, DType dtype) {
@@ -191,8 +211,16 @@ Tray __cpu_ternery_kernel(bool* c, void* a, void* b, const SmallVector& a_stride
     return TRAY_DISPATCH_ALL_TYPES(dtype, "ternery", [&] {
         std::shared_ptr<scalar_t> data(new scalar_t[total_size]);
 
-        __cpu_ternery_compare_kernel_template(c, static_cast<scalar_t*>(a), static_cast<scalar_t*>(b), data.get(), a_stride, b_stride, c_stride, shape);
+        __cpu_ternery_kernel_template(c, static_cast<scalar_t*>(a), static_cast<scalar_t*>(b), data.get(), a_stride, b_stride, c_stride, shape);
         return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), dtype, Device::CPU, data));
+    });
+}
+
+Tray __cpu_gather_kernel(const Tray& self, int64_t dim, const Tray& index) {
+    return TRAY_DISPATCH_ALL_TYPES(self.dtype(), "gather", [&] {
+        std::shared_ptr<scalar_t> data(new scalar_t[index.numel()]);
+        __cpu_gather_kernel_template(self, dim, index, static_cast<scalar_t*>(data.get()));
+        return Tray(make_intrusive<TrayImpl>(index.shape(), index.stride(), self.dtype(), Device::CPU, data));
     });
 }
 
@@ -212,3 +240,5 @@ TRAY_REGISTER(eq, CPU, oven::__cpu_eq_kernel);
 TRAY_REGISTER(neq, CPU, oven::__cpu_neq_kernel);
 
 TRAY_REGISTER(ternery, CPU, oven::__cpu_ternery_kernel);
+
+TRAY_REGISTER(gather, CPU, oven::__cpu_gather_kernel);

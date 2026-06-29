@@ -155,4 +155,21 @@ Tray where(const Tray& predicate, const Tray& self, const Tray& other) {
         static_cast<bool*>(predicate.data().get()), self.data().get(), other.data().get(), a_stride, b_stride, predicate_stride, *shape, self.dtype()
     );
 }
+
+Tray gather(const Tray& self, int64_t dim, const Tray& index) {
+    OVEN_ASSERT(index.dtype() == DType::kInt32 || index.dtype() == DType::kInt64, "index tensor is not integral type");
+    OVEN_ASSERT(index.ndim() == self.ndim(), "index tensor has invalid dimension");
+    // check if index tensor is valid
+    for (int64_t i = 0; i < index.ndim(); i++) {
+        if (i != dim) {
+            OVEN_ASSERT(self.shape()[i] == index.shape()[i], "given tensor and index tensor must have same dimension along axis other then given dim");
+        } else {
+            OVEN_ASSERT(index.shape()[i] < self.shape()[i], "index tensor's dimension of given axis must be smaller than that of given tensor");
+        }
+    }
+    return detail::Dispatcher::get_instance()
+        .dispatch<decltype(gather)>({detail::OpCode::gather, self.device()},
+        self, dim, index
+    );
+}
 }// namespace oven

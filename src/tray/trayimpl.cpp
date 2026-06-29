@@ -1,3 +1,4 @@
+#include "oven/tray/utils.hpp"
 #include "oven/utils/intrusive_ptr.hpp"
 #include <oven/tray/trayimpl.hpp>
 
@@ -9,7 +10,9 @@ TrayImpl::TrayImpl(const SmallVector& shape, const SmallVector& stride, const DT
   stride_(stride),
   dtype_(dtype),
   device_(device),
-  data_(data) {}
+  data_(data) {
+    numel_ = detail::compute_numel(shape);
+}
 
 TrayImpl::TrayImpl(const TrayImpl& other)
 : RefCountable(), // Note that we are making a new TrayImpl object. That is, if we copy the RefCount, two TrayImpl objects will have same lifetime.
@@ -17,9 +20,10 @@ TrayImpl::TrayImpl(const TrayImpl& other)
   stride_(other.stride_),
   dtype_(other.dtype_),
   device_(other.device_),
-  data_(other.data_)
+  data_(other.data_),
+  numel_(other.numel_)
 {
-
+  
 }
 
 TrayImpl::TrayImpl(TrayImpl&& other) noexcept
@@ -28,7 +32,8 @@ TrayImpl::TrayImpl(TrayImpl&& other) noexcept
   stride_(std::move(other.stride_)),
   dtype_(std::move(other.dtype_)),
   device_(std::move(other.device_)),
-  data_(std::move(other.data_))
+  data_(std::move(other.data_)),
+  numel_(other.numel_)
 {
 
 }

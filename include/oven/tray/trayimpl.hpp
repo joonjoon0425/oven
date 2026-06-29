@@ -16,6 +16,7 @@ private:
     Device device_;
 
     std::shared_ptr<void> data_;
+    int64_t numel_;
 
 public:
     friend Tray;

@@ -5,7 +5,7 @@
 #include <optional>
 
 namespace oven::detail {
-    int64_t compute_n_elements(const SmallVector& shape);
+    int64_t compute_numel(const SmallVector& shape);
     SmallVector compute_stride(const SmallVector& shape);
     void compute_coordinate(int64_t index, const SmallVector& stride, SmallVector& coord);
     int64_t compute_index(const SmallVector& coord, const SmallVector& stride);
