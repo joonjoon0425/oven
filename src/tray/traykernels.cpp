@@ -23,7 +23,7 @@ void __cpu_binary_elementwise_kernel_template(T* a, T* b, T* c, const SmallVecto
     for(int64_t i = 0; i < total_size; i++) {
         // reset coord vector
         coord.assign(coord.size(), 0);
-        detail::compute_coordinate(i, total_size, c_stride, coord);
+        detail::compute_coordinate(i, c_stride, coord);
         a_index = detail::compute_index(coord, a_stride);
         b_index = detail::compute_index(coord, b_stride);
         c[i] = op(a[a_index], b[b_index]);
@@ -44,7 +44,7 @@ void __cpu_binary_compare_kernel_template(T* a, T* b, bool* c, const SmallVector
     for(int64_t i = 0; i < total_size; i++) {
         // reset coord vector
         coord.assign(coord.size(), 0);
-        detail::compute_coordinate(i, total_size, c_stride, coord);
+        detail::compute_coordinate(i, c_stride, coord);
         a_index = detail::compute_index(coord, a_stride);
         b_index = detail::compute_index(coord, b_stride);
         c[i] = op(a[a_index], b[b_index]);
@@ -63,7 +63,7 @@ void __cpu_ternery_compare_kernel_template(bool* c, T* a, T* b, T* result, const
 
     for(int64_t i = 0; i < total_size; i++) {
         coord.assign(coord.size(), 0);
-        detail::compute_coordinate(i, total_size, result_stride, coord);
+        detail::compute_coordinate(i, result_stride, coord);
         a_index = detail::compute_index(coord, a_stride);
         b_index = detail::compute_index(coord, b_stride);
         c_index = detail::compute_index(coord, c_stride);
@@ -126,7 +126,7 @@ Tray __cpu_le_kernel(void* a, void* b, const SmallVector& a_stride, const SmallV
         std::shared_ptr<bool> data(new bool[total_size]);
 
         __cpu_binary_compare_kernel_template(static_cast<scalar_t*>(a), static_cast<scalar_t*>(b), data.get(), a_stride, b_stride, shape, [](scalar_t a, scalar_t b) {return a < b;});
-        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), dtype, Device::CPU, data));
+        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), oven::kBool, Device::CPU, data));
     });
 }
 
@@ -137,7 +137,7 @@ Tray __cpu_leq_kernel(void* a, void* b, const SmallVector& a_stride, const Small
         std::shared_ptr<bool> data(new bool[total_size]);
 
         __cpu_binary_compare_kernel_template(static_cast<scalar_t*>(a), static_cast<scalar_t*>(b), data.get(), a_stride, b_stride, shape, [](scalar_t a, scalar_t b) {return a <= b;});
-        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), dtype, Device::CPU, data));
+        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), oven::kBool, Device::CPU, data));
     });
 }
 
@@ -148,7 +148,7 @@ Tray __cpu_ge_kernel(void* a, void* b, const SmallVector& a_stride, const SmallV
         std::shared_ptr<bool> data(new bool[total_size]);
 
         __cpu_binary_compare_kernel_template(static_cast<scalar_t*>(a), static_cast<scalar_t*>(b), data.get(), a_stride, b_stride, shape, [](scalar_t a, scalar_t b) {return a > b;});
-        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), dtype, Device::CPU, data));
+        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), oven::kBool, Device::CPU, data));
     });
 }
 
@@ -159,7 +159,7 @@ Tray __cpu_geq_kernel(void* a, void* b, const SmallVector& a_stride, const Small
         std::shared_ptr<bool> data(new bool[total_size]);
 
         __cpu_binary_compare_kernel_template(static_cast<scalar_t*>(a), static_cast<scalar_t*>(b), data.get(), a_stride, b_stride, shape, [](scalar_t a, scalar_t b) {return a >= b;});
-        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), dtype, Device::CPU, data));
+        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), oven::kBool, Device::CPU, data));
     });
 }
 
@@ -170,7 +170,7 @@ Tray __cpu_eq_kernel(void* a, void* b, const SmallVector& a_stride, const SmallV
         std::shared_ptr<bool> data(new bool[total_size]);
 
         __cpu_binary_compare_kernel_template(static_cast<scalar_t*>(a), static_cast<scalar_t*>(b), data.get(), a_stride, b_stride, shape, [](scalar_t a, scalar_t b) {return a == b;});
-        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), dtype, Device::CPU, data));
+        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), oven::kBool, Device::CPU, data));
     });
 }
 
@@ -181,7 +181,7 @@ Tray __cpu_neq_kernel(void* a, void* b, const SmallVector& a_stride, const Small
         std::shared_ptr<bool> data(new bool[total_size]);
 
         __cpu_binary_compare_kernel_template(static_cast<scalar_t*>(a), static_cast<scalar_t*>(b), data.get(), a_stride, b_stride, shape, [](scalar_t a, scalar_t b) {return a != b;});
-        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), dtype, Device::CPU, data));
+        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), oven::kBool, Device::CPU, data));
     });
 }
 

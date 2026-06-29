@@ -25,6 +25,7 @@ enum class OpCode : uint16_t {
     zeros,
     ones,
     full,
+    rand,
     empty,
 
     TOTAL
@@ -71,6 +72,19 @@ public:
         return kernel(std::forward<Args>(args)...);
     }
 };
+
+// This is an inverse type dispatcher
+template <typename T>
+struct CppTypeToDType;
+
+template <> struct CppTypeToDType<int32_t> {static constexpr DType value = DType::kInt32;};
+template <> struct CppTypeToDType<int64_t> {static constexpr DType value = DType::kInt64;};
+template <> struct CppTypeToDType<bool> {static constexpr DType value = DType::kBool;};
+template <> struct CppTypeToDType<float> {static constexpr DType value = DType::kFloat32;};
+template <> struct CppTypeToDType<double> {static constexpr DType value = DType::kFloat64;};
+
+template <typename T>
+inline constexpr DType CppTypeToDType_v = CppTypeToDType<T>::value;
 
 }// namespace oven::detail
 
@@ -124,7 +138,7 @@ struct KernelRegistration {
 #define TRAY_DISPATCH_FLOAT_TYPES(DTYPE, OP_NAME, ...) [&] { \
     switch (DTYPE) {\
         TRAY_DISPATCH_CASE(oven::DType::kFloat32, float, __VA_ARGS__)\
-        TRAY_DISPATCH_CASE(oven::DType::KFloat64, double, __VA_ARGS__)\
+        TRAY_DISPATCH_CASE(oven::DType::kFloat64, double, __VA_ARGS__)\
         default:\
             OVEN_ASSERT(false, "No matching DType for following operator: " + OP_NAME);\
     }\
