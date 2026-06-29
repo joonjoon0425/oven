@@ -26,6 +26,8 @@ enum class OpCode : uint16_t {
     ones,
     full,
     rand,
+    randint,
+    randn,
     empty,
 
     TOTAL

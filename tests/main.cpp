@@ -30,11 +30,23 @@ int main() {
     float val2 = config.get<float>("/val2");
 
     std::string op = config.get<std::string>("/op");
+    std::string rd = config.get<std::string>("/rd/name");
 
-    oven::Tray tray1 = oven::rand(shape1);
-    oven::Tray tray2 = oven::rand(shape2);
+    oven::Tray tray1;
+    oven::Tray tray2;
     oven::Tray tray3;
     oven::Tray tray4;
+
+    if (rd == "u_real") {
+        tray1 = oven::rand(shape1, config.get<float>("/rd/l"), config.get<float>("/rd/h"));
+        tray2 = oven::rand(shape2, config.get<float>("/rd/l"), config.get<float>("/rd/h"));
+    } else if (rd == "u_int") {
+        tray1 = oven::randint(shape1, config.get<float>("/rd/l"), config.get<float>("/rd/h"));
+        tray2 = oven::randint(shape2, config.get<float>("/rd/l"), config.get<float>("/rd/h"));
+    } else if (rd == "normal") {
+        tray1 = oven::randn(shape1, config.get<float>("/rd/mean"), config.get<float>("/rd/std"));
+        tray2 = oven::randn(shape2, config.get<float>("/rd/mean"), config.get<float>("/rd/std"));
+    }
 
     if (op == "add") tray3 = tray1 + tray2;
     else if (op == "sub") tray3 = tray1 - tray2;
