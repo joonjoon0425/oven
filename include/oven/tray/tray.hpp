@@ -6,6 +6,7 @@
 #include <oven/tray/trayimpl.hpp>
 #include <oven/utils/intrusive_ptr.hpp>
 #include <oven/tray/operations.hpp>
+#include <torch/csrc/autograd/generated/variable_factories.h>
 
 namespace oven {
 
@@ -42,8 +43,10 @@ public:
 }; // class Tray
 
 // Tray Constructors
-Tray zeros(SmallVector shape, DType dtype = oven::kFloat32, Device device = Device::CPU);
-Tray ones(SmallVector shape, DType dtype = oven::kFloat32, Device device = Device::CPU);
-Tray full(SmallVector shape, Scalar val, DType dtype = oven::kFloat32, Device device = Device::CPU);
+Tray zeros(const SmallVector& shape, DType dtype = oven::kFloat32, Device device = Device::CPU);
+Tray ones(const SmallVector& shape, DType dtype = oven::kFloat32, Device device = Device::CPU);
+Tray full(const SmallVector& shape, Scalar val, DType dtype = oven::DType::Undefined, Device device = Device::CPU);
+// random
+Tray rand(const SmallVector& shape, DType dtype = oven::kFloat32, Device device = Device::CPU);
 
 } // namespace oven
