@@ -8,6 +8,7 @@ namespace oven::detail {
     int64_t compute_numel(const SmallVector& shape);
     SmallVector compute_stride(const SmallVector& shape);
     void compute_coordinate(int64_t index, const SmallVector& stride, SmallVector& coord);
+    void compute_coordinate(int64_t index, const Tray& tray, SmallVector& coord);
     int64_t compute_index(const SmallVector& coord, const SmallVector& stride);
     std::optional<SmallVector> binop_broadcastable(const SmallVector& shape1, const SmallVector& shape2);
     std::tuple<std::optional<SmallVector>, std::optional<SmallVector>> gather_broadcastable(const SmallVector& self, int64_t dim, const SmallVector& index);

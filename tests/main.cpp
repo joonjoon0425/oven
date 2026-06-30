@@ -59,6 +59,7 @@ int main() {
     else if (op == "sub") tray3 = tray1 - tray2;
     else if (op == "mul") tray3 = tray1 * tray2;
     else if (op == "div") tray3 = tray1 / tray2;
+    else if (op == "exp") tray3 = oven::exp(tray1);
     else if (op == "gather") tray3 = oven::gather(tray1, 1, tray2);
     else if (op == "scatter") {
         fout << "Before scatter: \n" << toTorch(tray1) << std::endl;
@@ -78,6 +79,7 @@ int main() {
 
     fout << toTorch(tray1) << std::endl;
     fout << toTorch(tray2) << std::endl;
+    fout << toTorch(-tray2) << std::endl;
     fout << toTorch(tray3) << std::endl;
     fout << toTorch(tray4) << std::endl;
     fout << file.rdbuf();

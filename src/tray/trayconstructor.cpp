@@ -92,7 +92,7 @@ Tray zeros(const SmallVector& shape, DType dtype, Device device) {
         
         detail::Dispatcher::get_instance()
         .dispatch<void(void*, size_t)>
-            ({detail::OpCode::zeros, device}, data.get(), total_size * sizeof(scalar_t));
+            ({detail::OpCode::zeros, dtype, device}, data.get(), total_size * sizeof(scalar_t));
 
         return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), dtype, device, data));    
     }); 
@@ -114,7 +114,6 @@ Tray full(const SmallVector& shape, Scalar val, DType dtype, Device device) {
         std::shared_ptr<scalar_t> data(new scalar_t[total_size]);
         
         auto ptr = std::get_if<scalar_t>(&val);
-        
         if(ptr == nullptr) {
             std::visit([&](const auto& v){
                 using T = std::decay_t<decltype(v)>;
@@ -123,28 +122,29 @@ Tray full(const SmallVector& shape, Scalar val, DType dtype, Device device) {
 
                 detail::Dispatcher::get_instance()
                 .dispatch<decltype(__cpu_full)>
-                ({detail::OpCode::full, device}, data.get(), &s, total_size, dtype);
+                ({detail::OpCode::full, dtype, device}, data.get(), &s, total_size, dtype);
             }, val);
         } else {
             detail::Dispatcher::get_instance()
             .dispatch<decltype(__cpu_full)>
-                ({detail::OpCode::full, device}, data.get(), ptr, total_size, dtype);
+                ({detail::OpCode::full, dtype, device}, data.get(), ptr, total_size, dtype);
         }
+        
         return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), dtype, device, data));
     });
 }
 
 Tray rand(const SmallVector &shape, Scalar low, Scalar high, DType dtype, Device device) {
     return oven::detail::Dispatcher::get_instance()
-        .dispatch<Tray(const SmallVector&, Scalar, Scalar, DType)>({oven::detail::OpCode::rand, device}, shape, low, high, dtype);
+        .dispatch<Tray(const SmallVector&, Scalar, Scalar, DType)>({oven::detail::OpCode::rand, dtype, device}, shape, low, high, dtype);
 }
 Tray randint(const SmallVector& shape, Scalar low, Scalar high, DType dtype, Device device) {
     return oven::detail::Dispatcher::get_instance()
-        .dispatch<Tray(const SmallVector&, Scalar, Scalar, DType)>({oven::detail::OpCode::randint, device}, shape, low, high, dtype);
+        .dispatch<Tray(const SmallVector&, Scalar, Scalar, DType)>({oven::detail::OpCode::randint, dtype, device}, shape, low, high, dtype);
 }
 Tray randn(const SmallVector& shape, Scalar mean, Scalar std, DType dtype, Device device) {
     return oven::detail::Dispatcher::get_instance()
-        .dispatch<Tray(const SmallVector&, Scalar, Scalar, DType)>({oven::detail::OpCode::randn, device}, shape, mean, std, dtype);
+        .dispatch<Tray(const SmallVector&, Scalar, Scalar, DType)>({oven::detail::OpCode::randn, dtype, device}, shape, mean, std, dtype);
 }
 Tray ones(const SmallVector& shape, DType dtype, Device device) {
     return full(shape, 1, dtype, device);
@@ -152,8 +152,8 @@ Tray ones(const SmallVector& shape, DType dtype, Device device) {
 
 }// namespace oven
 
-TRAY_REGISTER(zeros, CPU, oven::__cpu_zeros);
-TRAY_REGISTER(full, CPU, oven::__cpu_full);
-TRAY_REGISTER(rand, CPU, oven::__cpu_rand);
-TRAY_REGISTER(randint, CPU, oven::__cpu_randint);
-TRAY_REGISTER(randn, CPU, oven::__cpu_randn);
+TRAY_REGISTER(zeros, CPU, oven::all_types, oven::__cpu_zeros);
+TRAY_REGISTER(full, CPU, oven::all_types, oven::__cpu_full);
+TRAY_REGISTER(rand, CPU, oven::all_types, oven::__cpu_rand);
+TRAY_REGISTER(randint, CPU, oven::all_types, oven::__cpu_randint);
+TRAY_REGISTER(randn, CPU, oven::all_types, oven::__cpu_randn);

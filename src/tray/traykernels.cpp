@@ -3,40 +3,48 @@
 #include <concepts>
 #include <cstdint>
 #include <memory>
-#include <optional>
+#include <oven/tray/operatorstruct.hpp>
 #include <oven/tray/tray.hpp>
 #include <oven/tray/utils.hpp>
 #include <oven/tray/dispatcher.hpp>
 #include <type_traits>
 
+// All template kernels assume that the input Trays are all-checked for its validity.
+// Currently, the gather and scatter kernels breaking the assumption, since the reduction operations are not implemented yet.
+// Make an issue for this.
+
 namespace oven {
 
-template <typename T, typename BinOp>
-void __cpu_binary_elementwise_kernel_template(T* c, const SmallVector& c_shape, const Tray& a, const Tray& b, BinOp&& op) {
-    // I wish I could use openMP or any parallel techniques here!
-    SmallVector c_stride = detail::compute_stride(c_shape);
-    SmallVector coord(c_stride.size(), 0);
-    int64_t total_size = c_stride[0] * c_shape[0];
-    SmallVector a_stride = detail::get_right_aligned_broadcasted_stride(a.shape(), a.stride(), c_shape);
-    SmallVector b_stride = detail::get_right_aligned_broadcasted_stride(b.shape(), b.stride(), c_shape);
-    
-    int64_t a_index = 0;
-    int64_t b_index = 0;
+template <typename T, typename UnOp>
+requires requires (T a, UnOp op) {
+    {op(a)} -> std::same_as<std::invoke_result_t<UnOp, T>>;
+}
+void __cpu_unary_elementwise_kernel_template(std::invoke_result_t<UnOp, T>* c, const Tray& a) {
+    SmallVector c_stride = detail::compute_stride(a.shape());
+    int64_t numel = a.numel();
+    SmallVector coord(a.shape().size(), 0);
 
+    int64_t a_idx = 0;
     T* a_data = static_cast<T*>(a.data().get());
-    T* b_data = static_cast<T*>(b.data().get());
 
-    for(int64_t i = 0; i < total_size; i++) {
+    for (int64_t i = 0; i < numel; i++) {
         detail::compute_coordinate(i, c_stride, coord);
-        a_index = detail::compute_index(coord, a_stride);
-        b_index = detail::compute_index(coord, b_stride);
-        c[i] = op(a_data[a_index], b_data[b_index]);
+        a_idx = detail::compute_index(coord, a.stride());
+        c[i] = UnOp::get_instance()(a_data[a_idx]);        
     }
 }
 
-template <typename T, typename CompOp>
-requires std::predicate<CompOp, T, T>
-void __cpu_binary_compare_kernel_template(bool* c, const Tray& a, const Tray& b, const SmallVector& c_shape, CompOp&& op) {
+// template <typename T, typename BinOp>
+// requires requires (T a, T b, BinOp op) {
+//     {op(a, b)} -> std::same_as<T>;
+// }
+// void
+
+template <typename T, typename BinOp>
+requires requires (T a, T b, BinOp op) {
+    {op(a, b)} -> std::same_as<std::invoke_result_t<BinOp, T, T>>;
+}
+void __cpu_binary_elementwise_kernel_template(std::invoke_result_t<BinOp, T, T>* c, const SmallVector& c_shape, const Tray& a, const Tray& b) {
     // I wish I could use openMP or any parallel techniques here!
     SmallVector c_stride = detail::compute_stride(c_shape);
     SmallVector coord(c_stride.size(), 0);
@@ -54,7 +62,7 @@ void __cpu_binary_compare_kernel_template(bool* c, const Tray& a, const Tray& b,
         detail::compute_coordinate(i, c_stride, coord);
         a_index = detail::compute_index(coord, a_stride);
         b_index = detail::compute_index(coord, b_stride);
-        c[i] = op(a_data[a_index], b_data[b_index]);
+        c[i] = BinOp::get_instance()(a_data[a_index], b_data[b_index]);
     }
 }
 
@@ -143,107 +151,26 @@ void __cpu_scatter_inplace_kernel_template(const Tray& self, int64_t dim, const 
     });
 }
 
-Tray __cpu_add_kernel(const Tray& a, const Tray& b) {
-    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "add");
-    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "add", [&]{
-        using T = scalar_t;
-        std::shared_ptr<scalar_t> data(new scalar_t[detail::compute_numel(broadcast_shape)]);
+template <typename UnOp>
+Tray __cpu_unary_elementwise_kernel(const Tray& a, UnOp op) {
+    return TRAY_DISPATCH_ALL_TYPES(a.dtype(), UnOp::name, [&] {
+        using result_t = std::invoke_result_t<UnOp, scalar_t>;
+        std::shared_ptr<result_t> data(new result_t[a.numel()]);
+        __cpu_unary_elementwise_kernel_template<scalar_t, UnOp>(data.get(), a);
 
-        __cpu_binary_elementwise_kernel_template(data.get(), broadcast_shape, a, b, [](T a, T b) {return a + b;});
-        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), a.dtype(), Device::CPU, data));
+        return Tray(make_intrusive<TrayImpl>(a.shape(), detail::compute_stride(a.shape()), detail::CppTypeToDType_v<result_t>, Device::CPU, data));
     });
 }
 
-Tray __cpu_sub_kernel(const Tray& a, const Tray& b) {
-    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "sub");
-    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "sub", [&]{
-        using T = scalar_t;
-        std::shared_ptr<scalar_t> data(new scalar_t[detail::compute_numel(broadcast_shape)]);
+template <typename BinOp>
+Tray __cpu_binary_elementwise_kernel(const Tray& a, const Tray& b) {
+    auto broadcasted_shape = CHECK_BINARY_BROADCAST(a, b, BinOp::name);
+    return TRAY_DISPATCH_ALL_TYPES(a.dtype(), BinOp::name, [&] {
+        using result_t = std::invoke_result_t<BinOp, scalar_t, scalar_t>;
+        std::shared_ptr<result_t> data(new result_t[detail::compute_numel(broadcasted_shape)]);
+        __cpu_binary_elementwise_kernel_template<scalar_t, BinOp>(data.get(), broadcasted_shape, a, b);
 
-        __cpu_binary_elementwise_kernel_template(data.get(), broadcast_shape, a, b, [](T a, T b) {return a - b;});
-        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), a.dtype(), Device::CPU, data));
-    });
-}
-
-Tray __cpu_div_kernel(const Tray& a, const Tray& b) {
-    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "div");
-    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "div", [&]{
-        using T = scalar_t;
-        std::shared_ptr<scalar_t> data(new scalar_t[detail::compute_numel(broadcast_shape)]);
-
-        __cpu_binary_elementwise_kernel_template(data.get(), broadcast_shape, a, b, [](T a, T b) {return a / b;});
-        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), a.dtype(), Device::CPU, data));
-    });
-}
-
-Tray __cpu_mul_kernel(const Tray& a, const Tray& b) {
-    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "mul");
-    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "mul", [&]{
-        using T = scalar_t;
-        std::shared_ptr<scalar_t> data(new scalar_t[detail::compute_numel(broadcast_shape)]);
-
-        __cpu_binary_elementwise_kernel_template(data.get(), broadcast_shape, a, b, [](T a, T b) {return a * b;});
-        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), a.dtype(), Device::CPU, data));
-    });
-}
-
-Tray __cpu_le_kernel(const Tray& a, const Tray& b) {
-    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "le");
-    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "le", [&] {
-        std::shared_ptr<bool> data(new bool[detail::compute_numel(broadcast_shape)]);
-
-        __cpu_binary_compare_kernel_template<scalar_t>(data.get(), a, b, broadcast_shape, [](scalar_t a, scalar_t b) {return a < b;});
-        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), oven::kBool, Device::CPU, data));
-    });
-}
-
-Tray __cpu_leq_kernel(const Tray& a, const Tray& b) {
-    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "leq");
-    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "leq", [&] {
-        std::shared_ptr<bool> data(new bool[detail::compute_numel(broadcast_shape)]);
-
-        __cpu_binary_compare_kernel_template<scalar_t>(data.get(), a, b, broadcast_shape, [](scalar_t a, scalar_t b) {return a <= b;});
-        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), oven::kBool, Device::CPU, data));
-    });
-}
-
-Tray __cpu_ge_kernel(const Tray& a, const Tray& b) {
-    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "ge");
-    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "ge", [&] {
-        std::shared_ptr<bool> data(new bool[detail::compute_numel(broadcast_shape)]);
-
-        __cpu_binary_compare_kernel_template<scalar_t>(data.get(), a, b, broadcast_shape, [](scalar_t a, scalar_t b) {return a > b;});
-        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), oven::kBool, Device::CPU, data));
-    });
-}
-
-Tray __cpu_geq_kernel(const Tray& a, const Tray& b) {
-    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "geq");
-    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "geq", [&] {
-        std::shared_ptr<bool> data(new bool[detail::compute_numel(broadcast_shape)]);
-
-        __cpu_binary_compare_kernel_template<scalar_t>(data.get(), a, b, broadcast_shape, [](scalar_t a, scalar_t b) {return a >= b;});
-        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), oven::kBool, Device::CPU, data));
-    });
-}
-
-Tray __cpu_eq_kernel(const Tray& a, const Tray& b) {
-    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "eq");
-    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "eq", [&] {
-        std::shared_ptr<bool> data(new bool[detail::compute_numel(broadcast_shape)]);
-
-        __cpu_binary_compare_kernel_template<scalar_t>(data.get(), a, b, broadcast_shape, [](scalar_t a, scalar_t b) {return a == b;});
-        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), oven::kBool, Device::CPU, data));
-    });
-}
-
-Tray __cpu_neq_kernel(const Tray& a, const Tray& b) {
-    auto broadcast_shape = CHECK_BINARY_BROADCAST(a, b, "neq");
-    return TRAY_DISPATCH_NONBOOL_TYPES(a.dtype(), "neq", [&] {
-        std::shared_ptr<bool> data(new bool[detail::compute_numel(broadcast_shape)]);
-
-        __cpu_binary_compare_kernel_template<scalar_t>(data.get(), a, b, broadcast_shape, [](scalar_t a, scalar_t b) {return a != b;});
-        return Tray(make_intrusive<TrayImpl>(broadcast_shape, detail::compute_stride(broadcast_shape), oven::kBool, Device::CPU, data));
+        return Tray(make_intrusive<TrayImpl>(broadcasted_shape, detail::compute_stride(broadcasted_shape), detail::CppTypeToDType_v<result_t>, Device::CPU, data));
     });
 }
 
@@ -277,19 +204,24 @@ void __cpu_scatter_inplace_kernel(const Tray& self, int64_t dim, const Tray& ind
 }// namespace oven
 
 // register kernels here
-TRAY_REGISTER(add, CPU, oven::__cpu_add_kernel);
-TRAY_REGISTER(sub, CPU, oven::__cpu_sub_kernel);
-TRAY_REGISTER(div, CPU, oven::__cpu_div_kernel);
-TRAY_REGISTER(mul, CPU, oven::__cpu_mul_kernel);
+TRAY_REGISTER(add, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::AddOp>);
+TRAY_REGISTER(sub, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::SubOp>);
+TRAY_REGISTER(mul, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::MulOp>);
+TRAY_REGISTER(div, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::DivOp>);
 
-TRAY_REGISTER(le, CPU, oven::__cpu_le_kernel);
-TRAY_REGISTER(leq, CPU, oven::__cpu_leq_kernel);
-TRAY_REGISTER(ge, CPU, oven::__cpu_ge_kernel);
-TRAY_REGISTER(geq, CPU, oven::__cpu_geq_kernel);
-TRAY_REGISTER(eq, CPU, oven::__cpu_eq_kernel);
-TRAY_REGISTER(neq, CPU, oven::__cpu_neq_kernel);
+TRAY_REGISTER(le, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::LeOp>);
+TRAY_REGISTER(leq, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::LeqOp>);
+TRAY_REGISTER(ge, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::GeOp>);
+TRAY_REGISTER(geq, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::GeqOp>);
+TRAY_REGISTER(eq, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::EqOp>);
+TRAY_REGISTER(neq, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::NeqOp>);
 
-TRAY_REGISTER(ternery, CPU, oven::__cpu_ternery_kernel);
+TRAY_REGISTER(ternery, CPU, oven::all_types,oven::__cpu_ternery_kernel);
 
-TRAY_REGISTER(gather, CPU, oven::__cpu_gather_kernel);
-TRAY_REGISTER(scatter_, CPU, oven::__cpu_scatter_inplace_kernel);
+TRAY_REGISTER(gather, CPU, oven::all_types,oven::__cpu_gather_kernel);
+TRAY_REGISTER(scatter_, CPU, oven::all_types,oven::__cpu_scatter_inplace_kernel);
+
+TRAY_REGISTER(neg, CPU, oven::all_types, oven::__cpu_unary_elementwise_kernel<oven::detail::NegOp>);
+TRAY_REGISTER(recip, CPU, oven::all_types, oven::__cpu_unary_elementwise_kernel<oven::detail::RecipOp>);
+TRAY_REGISTER(log, CPU, oven::detail::LogOp::possible_types, oven::__cpu_unary_elementwise_kernel<oven::detail::LogOp>);
+TRAY_REGISTER(exp, CPU, oven::detail::ExpOp::possible_types, oven::__cpu_unary_elementwise_kernel<oven::detail::ExpOp>);

@@ -40,6 +40,9 @@ public:
     Tray operator>=(const Tray& other) const;
     Tray operator==(const Tray& other) const;
     Tray operator!=(const Tray& other) const;
+
+    // neg operator
+    Tray operator-() const;
     
 }; // class Tray
 
