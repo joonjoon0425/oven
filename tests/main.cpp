@@ -79,6 +79,7 @@ int main() {
 
     fout << toTorch(tray1) << std::endl;
     fout << toTorch(tray2) << std::endl;
+    fout << toTorch(-tray2) << std::endl;
     fout << toTorch(tray3) << std::endl;
     fout << toTorch(tray4) << std::endl;
     fout << file.rdbuf();

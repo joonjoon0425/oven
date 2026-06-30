@@ -1,12 +1,12 @@
 {
-    "shape1": [2, 2],
-    "shape2": [2, 2],
+    "shape1": [2, 2, 1],
+    "shape2": [1, 2, 3],
     "val1": 1,
     "val2": 3,
-    "op": "exp",
+    "op": "neq",
     "rd": {
-        "name": "normal",
-        "mean": 0,
-        "std": 2
+        "name": "u_int",
+        "l": 0,
+        "h": 5
     }
 }

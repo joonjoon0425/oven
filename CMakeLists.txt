@@ -18,7 +18,6 @@ add_library(oven SHARED
     src/tray/trayimpl.cpp
     src/tray/utils.cpp
     src/tray/operations.cpp
-    src/tray/operatorstruct.cpp
 )
 
 find_package(nlohmann_json REQUIRED)

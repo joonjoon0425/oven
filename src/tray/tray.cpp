@@ -48,5 +48,5 @@ Tray Tray::operator>=(const Tray& other) const {return geq((*this), other);}
 Tray Tray::operator==(const Tray& other) const{ return eq((*this), other);}
 Tray Tray::operator!=(const Tray& other) const {return neq((*this), other);}
 
-
+Tray Tray::operator-() const {return neg(*this);}
 }// namespace oven

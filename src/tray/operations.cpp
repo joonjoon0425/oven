@@ -113,9 +113,24 @@ void scatter_(const Tray& self, int64_t dim, const Tray& index, const Tray& src)
 }
 
 // unary operations
-Tray exp(Tray& self) {
+Tray exp(const Tray& self) {
     return detail::Dispatcher::get_instance()
         .dispatch<decltype(exp)>({detail::OpCode::exp, self.dtype(), self.device()}, self);
+}
+
+Tray neg(const Tray& self) {
+    return detail::Dispatcher::get_instance()
+        .dispatch<decltype(neg)>({detail::OpCode::neg, self.dtype(), self.device()}, self);
+}
+
+Tray recip(const Tray& self) {
+    return detail::Dispatcher::get_instance()
+        .dispatch<decltype(recip)>({detail::OpCode::recip, self.dtype(), self.device()}, self);
+}
+
+Tray log(const Tray& self) {
+    return detail::Dispatcher::get_instance()
+        .dispatch<decltype(log)>({detail::OpCode::log, self.dtype(), self.device()}, self);
 }
 
 }// namespace oven

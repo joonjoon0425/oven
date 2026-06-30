@@ -19,5 +19,8 @@ Tray where(const Tray& predicate, const Tray& self, const Tray& other);
 Tray gather(const Tray& self, int64_t dim, const Tray& index);
 void scatter_(const Tray& self, int64_t dim, const Tray& index, const Tray& src);
 
-Tray exp(Tray& self);
+Tray exp(const Tray& self);
+Tray neg(const Tray& self);
+Tray recip(const Tray& self);
+Tray log(const Tray& self);
 }
