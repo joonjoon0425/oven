@@ -17,8 +17,8 @@ void __cpu_binary_elementwise_kernel_template(T* c, const SmallVector& c_shape, 
     SmallVector c_stride = detail::compute_stride(c_shape);
     SmallVector coord(c_stride.size(), 0);
     int64_t total_size = c_stride[0] * c_shape[0];
-    SmallVector a_stride = detail::get_broadcasted_stride(a.shape(), c_shape);
-    SmallVector b_stride = detail::get_broadcasted_stride(b.shape(), c_shape);
+    SmallVector a_stride = detail::get_right_aligned_broadcasted_stride(a.shape(), a.stride(), c_shape);
+    SmallVector b_stride = detail::get_right_aligned_broadcasted_stride(b.shape(), b.stride(), c_shape);
     
     int64_t a_index = 0;
     int64_t b_index = 0;
@@ -27,8 +27,6 @@ void __cpu_binary_elementwise_kernel_template(T* c, const SmallVector& c_shape, 
     T* b_data = static_cast<T*>(b.data().get());
 
     for(int64_t i = 0; i < total_size; i++) {
-        // reset coord vector
-        coord.assign(coord.size(), 0);
         detail::compute_coordinate(i, c_stride, coord);
         a_index = detail::compute_index(coord, a_stride);
         b_index = detail::compute_index(coord, b_stride);
@@ -43,8 +41,8 @@ void __cpu_binary_compare_kernel_template(bool* c, const Tray& a, const Tray& b,
     SmallVector c_stride = detail::compute_stride(c_shape);
     SmallVector coord(c_stride.size(), 0);
     int64_t total_size = c_stride[0] * c_shape[0];
-    SmallVector a_stride = detail::get_broadcasted_stride(a.shape(), c_shape);
-    SmallVector b_stride = detail::get_broadcasted_stride(b.shape(), c_shape);
+    SmallVector a_stride = detail::get_right_aligned_broadcasted_stride(a.shape(), a.stride(), c_shape);
+    SmallVector b_stride = detail::get_right_aligned_broadcasted_stride(b.shape(), b.stride(), c_shape);
     
     int64_t a_index = 0;
     int64_t b_index = 0;
@@ -53,8 +51,6 @@ void __cpu_binary_compare_kernel_template(bool* c, const Tray& a, const Tray& b,
     T* b_data = static_cast<T*>(b.data().get());
 
     for(int64_t i = 0; i < total_size; i++) {
-        // reset coord vector
-        coord.assign(coord.size(), 0);
         detail::compute_coordinate(i, c_stride, coord);
         a_index = detail::compute_index(coord, a_stride);
         b_index = detail::compute_index(coord, b_stride);
@@ -73,7 +69,6 @@ void __cpu_ternery_kernel_template(bool* c, T* a, T* b, T* result, const SmallVe
     int64_t c_index = 0;
 
     for(int64_t i = 0; i < total_size; i++) {
-        coord.assign(coord.size(), 0);
         detail::compute_coordinate(i, result_stride, coord);
         a_index = detail::compute_index(coord, a_stride);
         b_index = detail::compute_index(coord, b_stride);
@@ -83,22 +78,69 @@ void __cpu_ternery_kernel_template(bool* c, T* a, T* b, T* result, const SmallVe
 }
 
 template <typename T>
-void __cpu_gather_kernel_template(const Tray& self, int64_t dim, const Tray& index, T* target) {
+void __cpu_gather_kernel_template(const Tray& self, int64_t dim, const Tray& index, const SmallVector& broadcasted_self, const SmallVector& broadcasted_index, T* target) {
     TRAY_DISPATCH_INT_TYPES(index.dtype(), "__cpu_gather_kernel_template", [&] {
-        const SmallVector& index_stride = index.stride();
-        const SmallVector& self_stride = self.stride();
+        const SmallVector& index_stride = detail::get_left_aligned_broadcasted_stride(index.shape(), index.stride(), broadcasted_index);
+        const SmallVector& self_stride = detail::get_left_aligned_broadcasted_stride(self.shape(), self.stride(), broadcasted_self);
+        SmallVector result_stride = detail::compute_stride(broadcasted_index);
         SmallVector coord(index_stride.size(), 0);
-        int64_t numel = index.numel();
+        int64_t numel = result_stride[0] * index.shape()[0];
         int64_t self_index = 0;
+        int64_t index_index = 0;
+        scalar_t* index_data = static_cast<scalar_t*>(index.data().get());
+        T* self_data = static_cast<T*>(self.data().get());
         for (int64_t i = 0; i < numel; i++) {
-            coord.assign(coord.size(), 0);
-            detail::compute_coordinate(i, index_stride, coord);
-            coord[dim] = static_cast<scalar_t*>(index.data().get())[i];
+            detail::compute_coordinate(i, result_stride, coord);
+            index_index = detail::compute_index(coord, index_stride);
+            coord[dim] = index_data[index_index];
+            OVEN_ASSERT(index_data[index_index] >= 0 && index_data[index_index] < self.shape()[dim], "index value out of range.");
             self_index = detail::compute_index(coord, self_stride);
-            target[i] = static_cast<T*>(self.data().get())[self_index];
+            
+            target[i] = self_data[self_index];
         }
     });
-    
+}
+
+template <typename T>
+void __cpu_scatter_inplace_kernel_template(const Tray& self, int64_t dim, const Tray& index, const Tray& src, const SmallVector& broadcasted_index) {
+    TRAY_DISPATCH_INT_TYPES(index.dtype(), "__cpu_scatter_inplace_kernel_template", [&]{
+        // broadcasted strides
+        // note that the index and src has same shape, when calling scatter_ operation.
+        // but let's save this for later implementation of more flexible broadcast...
+        // const SmallVector src_stride = detail::get_right_aligned_broadcasted_stride(src.shape(), src.stride(), broadcasted_index);
+        const SmallVector index_stride = detail::get_left_aligned_broadcasted_stride(index.shape(), index.stride(), broadcasted_index);
+       
+        // numel of index
+        const SmallVector stride = detail::compute_stride(broadcasted_index);
+        const int64_t numel = detail::compute_numel(broadcasted_index);
+
+        // raw data ptr
+        T* self_data = static_cast<T*>(self.data().get());
+        scalar_t* index_data = static_cast<scalar_t*>(index.data().get());
+        T* src_data = static_cast<T*>(src.data().get());
+         
+        // indices
+        int64_t self_index = 0;
+        int64_t index_index = 0;
+        int64_t src_index = 0;
+        // coord for computation of index
+        SmallVector coord(self.shape().size(), 0);
+        // keep in mind that src and self are now in the same shape, except the dim
+        for (int64_t i = 0; i < numel; i++) {
+            // calculate current coordinate of 
+            detail::compute_coordinate(i, stride, coord);
+            
+            index_index = detail::compute_index(coord, index_stride);
+            src_index = detail::compute_index(coord, index_stride/*src_stride*/);
+            
+            coord[dim] = index_data[index_index];
+
+            OVEN_ASSERT(index_data[index_index] >= 0 && index_data[index_index] < self.shape()[dim], "index value out of range.");
+
+            self_index = detail::compute_index(coord, self.stride());
+            self_data[self_index] = src_data[src_index];
+        }
+    });
 }
 
 Tray __cpu_add_kernel(const Tray& a, const Tray& b) {
@@ -217,10 +259,18 @@ Tray __cpu_ternery_kernel(bool* c, void* a, void* b, const SmallVector& a_stride
 }
 
 Tray __cpu_gather_kernel(const Tray& self, int64_t dim, const Tray& index) {
+    auto [broadcasted_self, broadcasted_index] = CHECK_GATHER_BROADCAST(self, dim, index);
     return TRAY_DISPATCH_ALL_TYPES(self.dtype(), "gather", [&] {
-        std::shared_ptr<scalar_t> data(new scalar_t[index.numel()]);
-        __cpu_gather_kernel_template(self, dim, index, static_cast<scalar_t*>(data.get()));
-        return Tray(make_intrusive<TrayImpl>(index.shape(), index.stride(), self.dtype(), Device::CPU, data));
+        std::shared_ptr<scalar_t> data(new scalar_t[detail::compute_numel(broadcasted_index)]);
+        __cpu_gather_kernel_template(self, dim, index, broadcasted_self, broadcasted_index, static_cast<scalar_t*>(data.get()));
+        return Tray(make_intrusive<TrayImpl>(broadcasted_index, detail::compute_stride(broadcasted_index), self.dtype(), Device::CPU, data));
+    });
+}
+
+void __cpu_scatter_inplace_kernel(const Tray& self, int64_t dim, const Tray& index, const Tray& src) {
+    auto broadcasted_index = CHECK_SCATTER_BROADCAST(self, dim, index, src);
+    return TRAY_DISPATCH_ALL_TYPES(self.dtype(), "scatter_", [&]{
+        __cpu_scatter_inplace_kernel_template<scalar_t>(self, dim, index, src, broadcasted_index);
     });
 }
 
@@ -242,3 +292,4 @@ TRAY_REGISTER(neq, CPU, oven::__cpu_neq_kernel);
 TRAY_REGISTER(ternery, CPU, oven::__cpu_ternery_kernel);
 
 TRAY_REGISTER(gather, CPU, oven::__cpu_gather_kernel);
+TRAY_REGISTER(scatter_, CPU, oven::__cpu_scatter_inplace_kernel);

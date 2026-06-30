@@ -31,6 +31,7 @@ enum class OpCode : uint16_t {
     empty,
 
     gather,
+    scatter_,
 
     TOTAL
 };

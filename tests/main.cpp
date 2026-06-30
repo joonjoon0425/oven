@@ -1,3 +1,4 @@
+#include "oven/tray/operations.hpp"
 #include "oven/tray/types.hpp"
 #include <ATen/ops/random.h>
 #include <c10/core/ScalarType.h>
@@ -52,12 +53,20 @@ int main() {
         tray1 = oven::randn(shape1, config.get<float>("/rd/mean"), config.get<float>("/rd/std"));
         tray2 = oven::randn(shape2, config.get<float>("/rd/mean"), config.get<float>("/rd/std"));
     }
+    tray3 = oven::randint(shape2, val1, val2);
 
     if (op == "add") tray3 = tray1 + tray2;
     else if (op == "sub") tray3 = tray1 - tray2;
     else if (op == "mul") tray3 = tray1 * tray2;
     else if (op == "div") tray3 = tray1 / tray2;
-    else {
+    else if (op == "gather") tray3 = oven::gather(tray1, 1, tray2);
+    else if (op == "scatter") {
+        fout << "Before scatter: \n" << toTorch(tray1) << std::endl;
+        fout << "Index tensor: \n" << toTorch(tray2) << std::endl;
+        fout << "Source tensor: \n" << toTorch(tray3) << std::endl;
+        oven::scatter_(tray1, 1, tray2, tray3);
+        fout << "After scatter: \n" << toTorch(tray1) << std::endl;
+    } else {
         if (op == "le") tray3 = tray1 < tray2;
         else if (op == "leq") tray3 = tray1 <= tray2;
         else if (op == "ge") tray3 = tray1 > tray2;
