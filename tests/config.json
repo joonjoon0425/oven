@@ -5,8 +5,8 @@
     "val2": 3,
     "op": "exp",
     "rd": {
-        "name": "u_int",
-        "l": 0,
-        "h": 2
+        "name": "normal",
+        "mean": 0,
+        "std": 2
     }
 }

@@ -1,8 +1,10 @@
 #pragma once
 
 // A LibTorch-like Dispatcher. I don't know why I made this. Actually.
+#include <iostream>
 #include <oven/tray/types.hpp>
 #include <utility>
+#include <span>
 #include <oven/utils/assert.hpp> // <-------Change this later if you want to completely dispatch oven and tray.
 
 namespace oven::detail {
@@ -46,10 +48,10 @@ enum class OpCode : uint16_t {
 struct DispatchKey {
     uint32_t key;
 
-    // saves key as bitmasks! Currently, 16 bits are used for operator code, 8 bits for each data type and device type.
-    // It too much right now, actually.
-    DispatchKey(OpCode opcode, Device device) {
-        key = (static_cast<uint32_t>(opcode) << 8)|(static_cast<uint8_t>(device));
+    // Currently, 16 bits are used for operator code, 8 bits for each data type and device type.
+    // Only the dtypes are saved as bitmasks
+    DispatchKey(OpCode opcode, DType dtype, Device device) {
+        key = (static_cast<uint32_t>(opcode) << 16)|(static_cast<uint8_t>(dtype) << 8)|(static_cast<uint8_t>(device));
     }
 };
 
@@ -58,7 +60,7 @@ private:
     using FuncPtr = void(*)();
     // We register all the functions by erasing their types
     // Later, function signatures will be given as template parameters when dispatcher is called
-    FuncPtr registry[static_cast<uint16_t>(OpCode::TOTAL)][static_cast<uint8_t>(Device::TOTAL)] = {nullptr, };
+    FuncPtr registry[static_cast<uint16_t>(OpCode::TOTAL)][static_cast<uint8_t>(DType::TOTAL)][static_cast<uint8_t>(Device::TOTAL)] = {nullptr, };
     Dispatcher() = default;
 
 public:
@@ -68,17 +70,20 @@ public:
     template<typename FuncType>
     void registration(DispatchKey key, FuncType&& op) {
         // Separate each key value with bit operations.
-        auto opcode = (key.key >> 8) & 0xFFFF;
+        // note that dtype may contain all possible dtypes, so we need separate it.
+        auto opcode = (key.key >> 16) & 0xFFFF;
+        auto dtype = (key.key >> 8) & 0xFF;
         auto device = (key.key) & 0xFF;
-        registry[opcode][device] = reinterpret_cast<FuncPtr>(op);
+        registry[opcode][dtype][device] = reinterpret_cast<FuncPtr>(op);
     }
 
     template <typename FuncType, typename... Args>
     auto dispatch(DispatchKey key, Args&&... args) {
-        auto opcode = (key.key >> 8) & 0xFFFF;
+        auto opcode = (key.key >> 16) & 0xFFFF;
+        auto dtype = (key.key >> 8) & 0xFF;
         auto device = (key.key) & 0xFF;
-        
-        auto kernel = reinterpret_cast<FuncType*>(registry[opcode][device]);
+        auto kernel = reinterpret_cast<FuncType*>(registry[opcode][dtype][device]);
+        OVEN_ASSERT(kernel != nullptr, "Unregisterd kernel.");
         return kernel(std::forward<Args>(args)...);
     }
 };
@@ -107,14 +112,23 @@ struct KernelRegistration {
     }
 };
 
+struct KernelRegistrationTypes {
+    template <typename FuncType>
+    KernelRegistrationTypes(oven::detail::OpCode code, std::span<const oven::DType> dtypes, oven::Device device, FuncType&& op) {
+        for (auto dtype : dtypes) {
+            oven::detail::Dispatcher::get_instance().registration({code, dtype, device}, op);
+        }
+    }
+};
+
 // This is a macro for registration
 #define CONCAT_IMPL(a, b) a##b
 #define CONCAT(a, b) CONCAT_IMPL(a, b)
 
-#define TRAY_REGISTER(opname, device, kernel) \
-    static KernelRegistration\
+#define TRAY_REGISTER(opname, device, dtypes, kernel) \
+    static KernelRegistrationTypes\
     CONCAT(regist_##opname##device, __COUNTER__)\
-    ({oven::detail::OpCode::opname, oven::Device::device}, kernel);
+    (oven::detail::OpCode::opname, dtypes, oven::Device::device, kernel);
 
 // This is a macro for type dispatching
 // Like LibTorch!!

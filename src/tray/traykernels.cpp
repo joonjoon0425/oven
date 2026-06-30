@@ -308,21 +308,21 @@ void __cpu_scatter_inplace_kernel(const Tray& self, int64_t dim, const Tray& ind
 }// namespace oven
 
 // register kernels here
-TRAY_REGISTER(add, CPU, oven::__cpu_add_kernel);
-TRAY_REGISTER(sub, CPU, oven::__cpu_sub_kernel);
-TRAY_REGISTER(div, CPU, oven::__cpu_div_kernel);
-TRAY_REGISTER(mul, CPU, oven::__cpu_mul_kernel);
+TRAY_REGISTER(add, CPU, oven::all_types, oven::__cpu_add_kernel);
+TRAY_REGISTER(sub, CPU, oven::all_types,oven::__cpu_sub_kernel);
+TRAY_REGISTER(div, CPU, oven::all_types,oven::__cpu_div_kernel);
+TRAY_REGISTER(mul, CPU, oven::all_types,oven::__cpu_mul_kernel);
 
-TRAY_REGISTER(le, CPU, oven::__cpu_le_kernel);
-TRAY_REGISTER(leq, CPU, oven::__cpu_leq_kernel);
-TRAY_REGISTER(ge, CPU, oven::__cpu_ge_kernel);
-TRAY_REGISTER(geq, CPU, oven::__cpu_geq_kernel);
-TRAY_REGISTER(eq, CPU, oven::__cpu_eq_kernel);
-TRAY_REGISTER(neq, CPU, oven::__cpu_neq_kernel);
+TRAY_REGISTER(le, CPU, oven::all_types,oven::__cpu_le_kernel);
+TRAY_REGISTER(leq, CPU, oven::all_types,oven::__cpu_leq_kernel);
+TRAY_REGISTER(ge, CPU, oven::all_types,oven::__cpu_ge_kernel);
+TRAY_REGISTER(geq, CPU, oven::all_types,oven::__cpu_geq_kernel);
+TRAY_REGISTER(eq, CPU, oven::all_types,oven::__cpu_eq_kernel);
+TRAY_REGISTER(neq, CPU, oven::all_types,oven::__cpu_neq_kernel);
 
-TRAY_REGISTER(ternery, CPU, oven::__cpu_ternery_kernel);
+TRAY_REGISTER(ternery, CPU, oven::all_types,oven::__cpu_ternery_kernel);
 
-TRAY_REGISTER(gather, CPU, oven::__cpu_gather_kernel);
-TRAY_REGISTER(scatter_, CPU, oven::__cpu_scatter_inplace_kernel);
+TRAY_REGISTER(gather, CPU, oven::all_types,oven::__cpu_gather_kernel);
+TRAY_REGISTER(scatter_, CPU, oven::all_types,oven::__cpu_scatter_inplace_kernel);
 
-TRAY_REGISTER(exp, CPU, oven::__cpu_unary_elementwise_kernel<oven::detail::ExpOp>);
+TRAY_REGISTER(exp, CPU, oven::detail::ExpOp::possible_types, oven::__cpu_unary_elementwise_kernel<oven::detail::ExpOp>);

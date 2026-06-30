@@ -10,5 +10,6 @@ uint8_t TRAY_POSSIBLE_TYPES_BITMASK(std::span<const oven::DType> types) {
 
 
 namespace oven::detail {
-uint8_t ExpOp::possible_types = TRAY_POSSIBLE_TYPES_BITMASK(std::array<DType, 2>{DType::kFloat32, DType::kFloat64});
+std::array<DType, 2> ExpOp::possible_types = std::array<DType, 2>{DType::kFloat32, DType::kFloat64};
+
 }
