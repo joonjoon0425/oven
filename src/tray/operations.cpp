@@ -80,13 +80,13 @@ Tray neq(const Tray& self, const Tray& other) {
 }
 
 Tray where(const Tray& predicate, const Tray& self, const Tray& other) {
-    std::optional<SmallVector> shape = detail::broadcastable(self.shape(), other.shape());
+    std::optional<SmallVector> shape = detail::binop_broadcastable(self.shape(), other.shape());
     OVEN_ASSERT(shape != std::nullopt, "Not broadcastable for ternery comparison operation.");
-    shape = detail::broadcastable(predicate.shape(), *shape);
+    shape = detail::binop_broadcastable(predicate.shape(), *shape);
     OVEN_ASSERT(shape != std::nullopt, "Not broadcastable for != operation.");
-    auto a_stride = detail::get_broadcasted_stride(self.shape(), *shape);
-    auto b_stride = detail::get_broadcasted_stride(other.shape(), *shape);
-    auto predicate_stride = detail::get_broadcasted_stride(predicate.shape(), *shape);
+    auto a_stride = detail::get_right_aligned_broadcasted_stride(self.shape(), self.stride(), *shape);
+    auto b_stride = detail::get_right_aligned_broadcasted_stride(other.shape(), other.stride(), *shape);
+    auto predicate_stride = detail::get_right_aligned_broadcasted_stride(predicate.shape(), predicate.stride(), *shape);
 
     return detail::Dispatcher::get_instance()
         .dispatch<oven::TerneryKernelType>({detail::OpCode::ternery, self.device()},
@@ -95,19 +95,19 @@ Tray where(const Tray& predicate, const Tray& self, const Tray& other) {
 }
 
 Tray gather(const Tray& self, int64_t dim, const Tray& index) {
-    OVEN_ASSERT(index.dtype() == DType::kInt32 || index.dtype() == DType::kInt64, "index tensor is not integral type");
-    OVEN_ASSERT(index.ndim() == self.ndim(), "index tensor has invalid dimension");
-    // check if index tensor is valid
-    for (int64_t i = 0; i < index.ndim(); i++) {
-        if (i != dim) {
-            OVEN_ASSERT(self.shape()[i] == index.shape()[i], "given tensor and index tensor must have same dimension along axis other then given dim");
-        } else {
-            OVEN_ASSERT(index.shape()[i] < self.shape()[i], "index tensor's dimension of given axis must be smaller than that of given tensor");
-        }
-    }
+    // The gather operation gets the value of 'dim'-dimension from self, according to the index.
+    OVEN_ASSERT(0 <= dim && dim < index.ndim(), "dim should be smaller than ndim of index.");
     return detail::Dispatcher::get_instance()
         .dispatch<decltype(gather)>({detail::OpCode::gather, self.device()},
         self, dim, index
+    );
+}
+void scatter_(const Tray& self, int64_t dim, const Tray& index, const Tray& src) {
+    // The scatter operation gets index from index tray and "scatter" the values of src to target, according to the index.
+    OVEN_ASSERT(index.shape() == src.shape(), "The shape of index and src must be same for scatter_ operation.");
+    detail::Dispatcher::get_instance()
+        .dispatch<decltype(scatter_)>({detail::OpCode::scatter_, self.device()}, 
+        self, dim, index, src
     );
 }
 }// namespace oven
