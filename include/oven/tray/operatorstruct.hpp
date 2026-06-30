@@ -1,7 +1,13 @@
-# pragma once
+#pragma once
 
+#include "oven/tray/types.hpp"
+#include <array>
+#include <cstdint>
 #include <cmath>
-#include <type_traits>
+#include <span>
+
+uint8_t TRAY_POSSIBLE_TYPES_BITMASK(std::span<const oven::DType> types);
+
 namespace oven::detail {
 
 struct NegOp {
@@ -24,7 +30,7 @@ struct RecipOp {
 
 struct ExpOp {
     static constexpr const char* name = "exp";
-    
+    static uint8_t possible_types;
     template <typename T>
     T operator()(T a) {return std::exp(a);}
 
