@@ -16,6 +16,17 @@ SmallVector compute_stride(const SmallVector& shape) {
     return ret;
 }    
 
+void compute_coordinate(int64_t index, const Tray& tray, SmallVector& coord) {
+    // this function caculates coordinate from row-major index
+    // coord expects a clean SmallVector initialized to 0.
+    const auto& stride = tray.stride();
+    int64_t remaining = index;
+    for(int64_t i = 0; i < stride.size(); i++) {
+        coord[i] = remaining / stride[i];
+        remaining %= stride[i];
+    }
+}
+
 void compute_coordinate(int64_t index, const SmallVector& stride, SmallVector& coord) {
     // this function caculates coordinate from row-major index
     // coord expects a clean SmallVector initialized to 0.

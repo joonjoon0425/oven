@@ -102,6 +102,7 @@ Tray gather(const Tray& self, int64_t dim, const Tray& index) {
         self, dim, index
     );
 }
+
 void scatter_(const Tray& self, int64_t dim, const Tray& index, const Tray& src) {
     // The scatter operation gets index from index tray and "scatter" the values of src to target, according to the index.
     OVEN_ASSERT(index.shape() == src.shape(), "The shape of index and src must be same for scatter_ operation.");
@@ -110,4 +111,11 @@ void scatter_(const Tray& self, int64_t dim, const Tray& index, const Tray& src)
         self, dim, index, src
     );
 }
+
+// unary operations
+Tray exp(Tray& self) {
+    return detail::Dispatcher::get_instance()
+        .dispatch<decltype(exp)>({detail::OpCode::exp, self.device()}, self);
+}
+
 }// namespace oven

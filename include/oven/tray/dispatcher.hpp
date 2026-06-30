@@ -22,6 +22,11 @@ enum class OpCode : uint16_t {
     neq,
     ternery,
 
+    neg,
+    exp,
+    log,
+    recip,
+
     zeros,
     ones,
     full,

@@ -1,12 +1,12 @@
 {
-    "shape1": [3, 6, 5],
-    "shape2": [3, 7],
+    "shape1": [2, 2],
+    "shape2": [2, 2],
     "val1": 1,
     "val2": 3,
-    "op": "scatter",
+    "op": "exp",
     "rd": {
         "name": "u_int",
         "l": 0,
-        "h": 5
+        "h": 2
     }
 }
