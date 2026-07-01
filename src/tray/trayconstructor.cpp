@@ -134,6 +134,10 @@ Tray full(const SmallVector& shape, Scalar val, DType dtype, Device device) {
     });
 }
 
+Tray ones(const SmallVector& shape, DType dtype, Device device) {
+    return full(shape, 1, dtype, device);
+}
+
 Tray rand(const SmallVector &shape, Scalar low, Scalar high, DType dtype, Device device) {
     return oven::detail::Dispatcher::get_instance()
         .dispatch<Tray(const SmallVector&, Scalar, Scalar, DType)>({oven::detail::OpCode::rand, dtype, device}, shape, low, high, dtype);
@@ -146,10 +150,14 @@ Tray randn(const SmallVector& shape, Scalar mean, Scalar std, DType dtype, Devic
     return oven::detail::Dispatcher::get_instance()
         .dispatch<Tray(const SmallVector&, Scalar, Scalar, DType)>({oven::detail::OpCode::randn, dtype, device}, shape, mean, std, dtype);
 }
-Tray ones(const SmallVector& shape, DType dtype, Device device) {
-    return full(shape, 1, dtype, device);
-}
 
+Tray from_blob(void *source, const SmallVector &shape, DType dtype, Device device) {
+    return TRAY_DISPATCH_ALL_TYPES(dtype, "tray", [&] {
+        // Cannot check if the numel of source and numel computed from shape matches or not..??!
+        std::shared_ptr<scalar_t> data(static_cast<scalar_t*>(source), [](scalar_t*){}); // Note that the lifetime of data is managed by the original owner of the source.
+        return Tray(make_intrusive<TrayImpl>(shape, detail::compute_stride(shape), dtype, device, data));
+    });
+}
 }// namespace oven
 
 TRAY_REGISTER(zeros, CPU, oven::all_types, oven::__cpu_zeros);

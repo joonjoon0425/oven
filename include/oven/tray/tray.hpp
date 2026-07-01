@@ -19,7 +19,7 @@ private:
     
 public:
     Tray(){ impl_ = nullptr;};
-    Tray(intrusive_ptr<TrayImpl> impl);
+    explicit Tray(intrusive_ptr<TrayImpl> impl);
     const SmallVector& shape() const;
     const SmallVector& stride() const;
     const int64_t ndim() const;
@@ -54,4 +54,7 @@ Tray full(const SmallVector& shape, Scalar val, DType dtype = oven::DType::Undef
 Tray rand(const SmallVector& shape, Scalar low = 0., Scalar high = 1., DType dtype = oven::kFloat32, Device device = Device::CPU);
 Tray randint(const SmallVector& shape, Scalar low, Scalar high, DType dtype = oven::DType::kInt64, Device device = Device::CPU);
 Tray randn(const SmallVector& shape, Scalar mean = 0., Scalar std = 1., DType dtype = oven::DType::kFloat32, Device device = Device::CPU);
+// from source
+Tray from_blob(void* source, const SmallVector& shape, DType dtype, Device device = Device::CPU);
+
 } // namespace oven

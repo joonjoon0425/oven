@@ -27,4 +27,4 @@ public:
 
     TrayImpl& operator=(TrayImpl) = delete;
 };
-}
+} // namespace oven
