@@ -11,6 +11,8 @@
 
 #include <fstream>
 
+#include "oven/tray/dispatcher.hpp"
+
 torch::Dtype tt(oven::DType type) {
     if (type == oven::kBool) return torch::kBool;
     else if (type == oven::kInt32) return torch::kInt32;
@@ -34,6 +36,8 @@ int main() {
     oven::SmallVector shape2 = {config.get<oven::SmallVector>("/shape2")};
     float val1 = config.get<float>("/val1");
     float val2 = config.get<float>("/val2");
+    auto blob = config.get<std::vector<float>>("/blob/data");
+    auto blob_shape = config.get<std::vector<int64_t>>("/blob/shape");
 
     std::string op = config.get<std::string>("/op");
     std::string rd = config.get<std::string>("/rd/name");
@@ -82,6 +86,7 @@ int main() {
     fout << toTorch(-tray2) << std::endl;
     fout << toTorch(tray3) << std::endl;
     fout << toTorch(tray4) << std::endl;
+    fout << "From blob: \n" << toTorch(oven::from_blob(blob.data(), blob_shape, oven::detail::CppTypeToDType_v<float>)) << std::endl;
     fout << file.rdbuf();
 
     fout.close();

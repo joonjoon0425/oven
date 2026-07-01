@@ -40,6 +40,7 @@ enum class OpCode : uint16_t {
     gather,
     scatter_,
 
+
     TOTAL
 };
 

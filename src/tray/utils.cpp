@@ -17,7 +17,7 @@ SmallVector compute_stride(const SmallVector& shape) {
 }    
 
 void compute_coordinate(int64_t index, const Tray& tray, SmallVector& coord) {
-    // this function caculates coordinate from row-major index
+    // this function calculates coordinate from row-major index
     // coord expects a clean SmallVector initialized to 0.
     const auto& stride = tray.stride();
     int64_t remaining = index;
@@ -28,7 +28,7 @@ void compute_coordinate(int64_t index, const Tray& tray, SmallVector& coord) {
 }
 
 void compute_coordinate(int64_t index, const SmallVector& stride, SmallVector& coord) {
-    // this function caculates coordinate from row-major index
+    // this function calculates coordinate from row-major index
     // coord expects a clean SmallVector initialized to 0.
     int64_t remaining = index;
     for(int64_t i = 0; i < stride.size(); i++) {
@@ -38,7 +38,7 @@ void compute_coordinate(int64_t index, const SmallVector& stride, SmallVector& c
 }
 
 int64_t compute_index(const SmallVector& coord, const SmallVector& stride) {
-    // this function caculates row-major index
+    // this function calculates row-major index
     int64_t ret = 0;
     for (int64_t i = 0; i < coord.size(); i++) {
         ret += coord[i] * stride[i];
@@ -131,7 +131,7 @@ int64_t compute_numel(const SmallVector &shape) {
 
 }// namespace oven::detail
 
-oven::SmallVector CHECK_BINARY_BROADCAST(const oven::Tray& self, const oven::Tray& other, std::string op) {
+oven::SmallVector CHECK_BINARY_BROADCAST(const oven::Tray& self, const oven::Tray& other, const std::string &op) {
     std::optional<oven::SmallVector> shape = oven::detail::binop_broadcastable(self.shape(), other.shape());
     OVEN_ASSERT(shape != std::nullopt, "Not broadcastable for " + op + " operation.");
     // later, make SmallerVector print function for debugging...

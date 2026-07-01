@@ -18,6 +18,6 @@ namespace oven::detail {
 }
 
 // helper macro-like functions
-oven::SmallVector CHECK_BINARY_BROADCAST(const oven::Tray&, const oven::Tray&, std::string);
+oven::SmallVector CHECK_BINARY_BROADCAST(const oven::Tray&, const oven::Tray&, const std::string &);
 std::tuple<oven::SmallVector, oven::SmallVector> CHECK_GATHER_BROADCAST(const oven::Tray& self, int64_t dim, const oven::Tray& index);
 oven::SmallVector CHECK_SCATTER_BROADCAST(const oven::Tray& self, int64_t dim, const oven::Tray& index, const oven::Tray& src);
