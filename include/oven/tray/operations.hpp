@@ -1,29 +1,22 @@
 #pragma once
 #include <oven/tray/tray.hpp>
 
+#define TRAY_DECLARE_BINOP(binop) \
+Tray binop(const Tray&, const Tray&);\
+Tray binop(const Tray&, const Scalar&);\
+Tray binop(const Scalar&, const Tray&);\
+
 namespace oven {
-Tray add(const Tray& self, const Tray& other);
-Tray add(const Tray& self, const Scalar& scalar);
-Tray add(const Scalar& scalar, const Tray& other);
-
-Tray sub(const Tray& self, const Tray& other);
-Tray sub(const Tray& self, const Scalar& scalar);
-Tray sub(const Scalar& scalar, const Tray& other);
-
-Tray mul(const Tray& self, const Tray& other);
-Tray mul(const Tray& self, const Scalar& scalar);
-Tray mul(const Scalar& scalar, const Tray& other);
-
-Tray div(const Tray& self, const Tray& other);
-Tray div(const Tray& self, const Scalar& scalar);
-Tray div(const Scalar& scalar, const Tray& other);
-
-Tray leq(const Tray& self, const Tray& other);
-Tray geq(const Tray& self, const Tray& other);
-Tray le(const Tray& self, const Tray& other);
-Tray ge(const Tray& self, const Tray& other);
-Tray eq(const Tray& self, const Tray& other);
-Tray neq(const Tray& self, const Tray& other);
+TRAY_DECLARE_BINOP(add);
+TRAY_DECLARE_BINOP(sub);
+TRAY_DECLARE_BINOP(mul);
+TRAY_DECLARE_BINOP(div);
+TRAY_DECLARE_BINOP(le);
+TRAY_DECLARE_BINOP(leq);
+TRAY_DECLARE_BINOP(ge);
+TRAY_DECLARE_BINOP(geq);
+TRAY_DECLARE_BINOP(eq);
+TRAY_DECLARE_BINOP(neq);
 
 Tray where(const Tray& predicate, const Tray& self, const Tray& other);
 

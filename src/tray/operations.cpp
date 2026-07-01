@@ -7,133 +7,41 @@
 #include <oven/utils/assert.hpp>
 #include <oven/tray/operations.hpp>
 
+// rules for using TRAY_DEFINE_BINOP
+// 1. broadcasting equals that of arithmetic operations.
+// 2. operator kernel enum name must equal op, op_ts, op_st.
+
+#define TRAY_DEFINE_BINOP(opname)\
+Tray opname(const Tray& self, const Tray& other) {\
+    return detail::Dispatcher::get_instance()\
+        .dispatch<Tray(const Tray&, const Tray&)>\
+        ({detail::OpCode::opname, self.dtype(), self.device()},\
+            self, other);\
+}\
+Tray opname(const Tray& self, const Scalar& scalar) {\
+    return detail::Dispatcher::get_instance()\
+        .dispatch<Tray(const Tray&, const Scalar&)>\
+        ({detail::OpCode::opname##_ts, self.dtype(), self.device()},\
+            self, scalar);\
+}\
+Tray opname(const Scalar& scalar, const Tray& self) {\
+    return detail::Dispatcher::get_instance()\
+        .dispatch<Tray(const Scalar&, const Tray&)>\
+        ({detail::OpCode::opname##_st, self.dtype(), self.device()},\
+            scalar, self);\
+}
+
 namespace oven {
-
-Tray add(const Tray& self, const Tray& other) {
-    return detail::Dispatcher::get_instance()
-        .dispatch<TensorTensorType>
-            ({detail::OpCode::add, self.dtype(), self.device()},
-                self, other);
-}
-
-Tray add(const Tray &self, const Scalar& scalar) {
-    return detail::Dispatcher::get_instance()
-        .dispatch<TensorScalarType>
-            ({detail::OpCode::add_ts, self.dtype(), self.device()},
-                self, scalar);
-}
-
-Tray add(const Scalar& scalar, const Tray& self) {
-    return detail::Dispatcher::get_instance()
-        .dispatch<ScalarTensorType>
-            ({detail::OpCode::add_st, self.dtype(), self.device()},
-                scalar, self);
-}
-
-Tray sub(const Tray& self, const Tray& other) {
-    return detail::Dispatcher::get_instance()
-        .dispatch<TensorTensorType>
-            ({detail::OpCode::sub, self.dtype(), self.device()},
-                self, other);
-}
-
-Tray sub(const Tray& self, const Scalar& scalar) {
-    return detail::Dispatcher::get_instance()
-        .dispatch<TensorScalarType>
-            ({detail::OpCode::sub_ts, self.dtype(), self.device()},
-                self, scalar);
-}
-
-Tray sub(const Scalar& scalar, const Tray& self) {
-    return detail::Dispatcher::get_instance()
-        .dispatch<ScalarTensorType>
-            ({detail::OpCode::sub_st, self.dtype(), self.device()},
-                scalar, self);
-}
-
-Tray mul(const Tray& self, const Tray& other) {
-    return detail::Dispatcher::get_instance()
-        .dispatch<TensorTensorType>
-            ({detail::OpCode::mul, self.dtype(), self.device()},
-                self, other);
-}
-
-Tray mul(const Tray& self, const Scalar& scalar) {
-    return detail::Dispatcher::get_instance()
-        .dispatch<TensorScalarType>
-            ({detail::OpCode::mul_ts, self.dtype(), self.device()},
-                self, scalar);
-}
-
-Tray mul(const Scalar& scalar, const Tray& self) {
-    return detail::Dispatcher::get_instance()
-        .dispatch<ScalarTensorType>
-            ({detail::OpCode::mul_st, self.dtype(), self.device()},
-                scalar, self);
-}
-
-Tray div(const Tray& self, const Tray& other) {
-    return detail::Dispatcher::get_instance()
-        .dispatch<TensorTensorType>
-            ({detail::OpCode::div, self.dtype(), self.device()},
-                self, other);
-}
-
-Tray div(const Tray& self, const Scalar& scalar) {
-    return detail::Dispatcher::get_instance()
-        .dispatch<TensorScalarType>
-            ({detail::OpCode::div_ts, self.dtype(), self.device()},
-                self, scalar);
-}
-
-Tray div(const Scalar& scalar, const Tray& self) {
-    return detail::Dispatcher::get_instance()
-        .dispatch<ScalarTensorType>
-            ({detail::OpCode::div_st, self.dtype(), self.device()},
-                scalar, self);
-}
-
-Tray le(const Tray& self, const Tray& other) {
-    return detail::Dispatcher::get_instance()
-        .dispatch<decltype(le)>
-            ({detail::OpCode::le, self.dtype(), self.device()},
-                self, other);
-}
-
-Tray leq(const Tray& self, const Tray& other) {
-    return detail::Dispatcher::get_instance()
-        .dispatch<decltype(leq)>
-            ({detail::OpCode::leq, self.dtype(), self.device()},
-                self, other);
-}
-
-Tray ge(const Tray& self, const Tray& other) {
-    return detail::Dispatcher::get_instance()
-        .dispatch<decltype(ge)>
-            ({detail::OpCode::ge, self.dtype(), self.device()},
-                self, other);
-}
-
-Tray geq(const Tray& self, const Tray& other) {
-    return detail::Dispatcher::get_instance()
-        .dispatch<decltype(geq)>
-            ({detail::OpCode::geq, self.dtype(), self.device()},
-                self, other);
-}
-
-Tray eq(const Tray& self, const Tray& other) {
-    return detail::Dispatcher::get_instance()
-        .dispatch<decltype(eq)>
-            ({detail::OpCode::eq, self.dtype(), self.device()},
-                self, other);
-}
-
-Tray neq(const Tray& self, const Tray& other) {
-    return detail::Dispatcher::get_instance()
-        .dispatch<decltype(le)>
-            ({detail::OpCode::neq, self.dtype(), self.device()},
-                self, other);
-}
+TRAY_DEFINE_BINOP(add);
+TRAY_DEFINE_BINOP(sub);
+TRAY_DEFINE_BINOP(mul);
+TRAY_DEFINE_BINOP(div);
+TRAY_DEFINE_BINOP(le);
+TRAY_DEFINE_BINOP(leq);
+TRAY_DEFINE_BINOP(ge);
+TRAY_DEFINE_BINOP(geq);
+TRAY_DEFINE_BINOP(eq);
+TRAY_DEFINE_BINOP(neq);
 
 Tray where(const Tray& predicate, const Tray& self, const Tray& other) {
     std::optional<SmallVector> shape = detail::binop_broadcastable(self.shape(), other.shape());

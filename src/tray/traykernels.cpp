@@ -65,7 +65,7 @@ requires requires (T a, T b, BinOp op)
 {
     {op(a, b)} -> std::same_as<std::invoke_result_t<BinOp, T, T>>;
 }
-void __cpu_binary_scalar_tensor_kernel_template(T* dst, T scalar, const Tray& a) {
+void __cpu_binary_scalar_tensor_kernel_template(std::invoke_result_t<BinOp, T, T>* dst, T scalar, const Tray& a) {
     SmallVector coord(a.shape().size(), 0);
     const SmallVector& a_stride = a.stride();
     const SmallVector& dst_stride = detail::compute_stride(a.shape());
@@ -84,7 +84,7 @@ requires requires (T a, T b, BinOp op)
 {
     {op(a, b)} -> std::same_as<std::invoke_result_t<BinOp, T, T>>;
 }
-void __cpu_binary_tensor_scalar_kernel_template(T* dst, const Tray& a, T scalar) {
+void __cpu_binary_tensor_scalar_kernel_template(std::invoke_result_t<BinOp, T, T>* dst, const Tray& a, T scalar) {
     SmallVector coord(a.shape().size(), 0);
     const SmallVector& a_stride = a.stride();
     const SmallVector& dst_stride = detail::compute_stride(a.shape());
@@ -264,29 +264,21 @@ void __cpu_scatter_inplace_kernel(const Tray& self, int64_t dim, const Tray& ind
 }// namespace oven
 
 // register kernels here
-TRAY_REGISTER(add, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::AddOp>);
-TRAY_REGISTER(add_ts, CPU, oven::all_types, oven::__cpu_binary_tensor_scalar_kernel<oven::detail::AddOp>);
-TRAY_REGISTER(add_st, CPU, oven::all_types, oven::__cpu_binary_scalar_tensor_kernel<oven::detail::AddOp>);
+#define TRAY_REGISTER_BINOP_CPU(binop, possible_types, OpStruct)\
+TRAY_REGISTER(binop, CPU, possible_types, oven::__cpu_binary_elementwise_kernel<oven::detail::OpStruct>);\
+TRAY_REGISTER(binop##_ts, CPU, possible_types, oven::__cpu_binary_tensor_scalar_kernel<oven::detail::OpStruct>);\
+TRAY_REGISTER(binop##_st, CPU, possible_types, oven::__cpu_binary_scalar_tensor_kernel<oven::detail::OpStruct>);\
 
-TRAY_REGISTER(sub, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::SubOp>);
-TRAY_REGISTER(sub_ts, CPU, oven::all_types, oven::__cpu_binary_tensor_scalar_kernel<oven::detail::SubOp>);
-TRAY_REGISTER(sub_st, CPU, oven::all_types, oven::__cpu_binary_scalar_tensor_kernel<oven::detail::SubOp>);
-
-TRAY_REGISTER(mul, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::MulOp>);
-TRAY_REGISTER(mul_ts, CPU, oven::all_types, oven::__cpu_binary_tensor_scalar_kernel<oven::detail::MulOp>);
-TRAY_REGISTER(mul_st, CPU, oven::all_types, oven::__cpu_binary_scalar_tensor_kernel<oven::detail::MulOp>);
-
-TRAY_REGISTER(div, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::DivOp>);
-TRAY_REGISTER(div_ts, CPU, oven::all_types, oven::__cpu_binary_tensor_scalar_kernel<oven::detail::DivOp>);
-TRAY_REGISTER(div_st, CPU, oven::all_types, oven::__cpu_binary_scalar_tensor_kernel<oven::detail::DivOp>);
-
-
-TRAY_REGISTER(le, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::LeOp>);
-TRAY_REGISTER(leq, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::LeqOp>);
-TRAY_REGISTER(ge, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::GeOp>);
-TRAY_REGISTER(geq, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::GeqOp>);
-TRAY_REGISTER(eq, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::EqOp>);
-TRAY_REGISTER(neq, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::NeqOp>);
+TRAY_REGISTER_BINOP_CPU(add, oven::all_types, AddOp);
+TRAY_REGISTER_BINOP_CPU(sub, oven::all_types, SubOp);
+TRAY_REGISTER_BINOP_CPU(mul, oven::all_types, MulOp);
+TRAY_REGISTER_BINOP_CPU(div, oven::all_types, DivOp);
+TRAY_REGISTER_BINOP_CPU(le, oven::all_types, LeOp);
+TRAY_REGISTER_BINOP_CPU(leq, oven::all_types, LeqOp);
+TRAY_REGISTER_BINOP_CPU(ge, oven::all_types, GeOp);
+TRAY_REGISTER_BINOP_CPU(geq, oven::all_types, GeqOp);
+TRAY_REGISTER_BINOP_CPU(eq, oven::all_types, EqOp);
+TRAY_REGISTER_BINOP_CPU(neq, oven::all_types, NeqOp);
 
 TRAY_REGISTER(ternery, CPU, oven::all_types,oven::__cpu_ternery_kernel);
 

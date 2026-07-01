@@ -8,6 +8,11 @@
 #include <oven/tray/operations.hpp>
 #include <torch/csrc/autograd/generated/variable_factories.h>
 
+#define TRAY_DECLARE_MEMBER_BINOP(op)\
+Tray operator op(const Tray&) const;\
+Tray operator op(const Scalar&) const;\
+friend Tray operator op(const Scalar&, const Tray&);\
+
 namespace oven {
 
 class TrayImpl;
@@ -29,28 +34,17 @@ public:
     const int64_t numel() const;
 
     // arithmetic operators
-    Tray operator+(const Tray& other) const;
-    Tray operator-(const Tray& other) const;
-    Tray operator*(const Tray& other) const;
-    Tray operator/(const Tray& other) const;
-
-    Tray operator+(const Scalar& scalar) const;
-    Tray operator-(const Scalar& scalar) const;
-    Tray operator*(const Scalar& scalar) const;
-    Tray operator/(const Scalar& scalar) const;
-
-    friend Tray operator+(const Scalar& scalar, const Tray& tray);
-    friend Tray operator-(const Scalar& scalar, const Tray& tray);
-    friend Tray operator*(const Scalar& scalar, const Tray& tray);
-    friend Tray operator/(const Scalar& scalar, const Tray& tray);
+    TRAY_DECLARE_MEMBER_BINOP(+);
+    TRAY_DECLARE_MEMBER_BINOP(-);
+    TRAY_DECLARE_MEMBER_BINOP(*);
+    TRAY_DECLARE_MEMBER_BINOP(/);
     // compare operators
-    Tray operator<(const Tray& other) const;
-    Tray operator<=(const Tray& other) const;
-    Tray operator>(const Tray& other) const;
-    Tray operator>=(const Tray& other) const;
-    Tray operator==(const Tray& other) const;
-    Tray operator!=(const Tray& other) const;
-
+    TRAY_DECLARE_MEMBER_BINOP(>);
+    TRAY_DECLARE_MEMBER_BINOP(<);
+    TRAY_DECLARE_MEMBER_BINOP(<=);
+    TRAY_DECLARE_MEMBER_BINOP(>=);
+    TRAY_DECLARE_MEMBER_BINOP(==);
+    TRAY_DECLARE_MEMBER_BINOP(!=);
     // neg operator
     Tray operator-() const;
     
