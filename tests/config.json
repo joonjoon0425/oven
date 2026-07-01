@@ -5,7 +5,7 @@
     "val2": 3,
     "op": "add",
     "rd": {
-        "name": "u_int",
+        "name": "u_real",
         "l": 0,
         "h": 5
     },

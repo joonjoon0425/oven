@@ -58,5 +58,30 @@ Tray Tray::operator>=(const Tray& other) const {return geq((*this), other);}
 Tray Tray::operator==(const Tray& other) const {return eq((*this), other);}
 Tray Tray::operator!=(const Tray& other) const {return neq((*this), other);}
 
+Tray Tray::operator<(const Scalar& scalar) const {return le((*this), scalar);}
+Tray Tray::operator<=(const Scalar& scalar) const {return leq((*this), scalar);}
+Tray Tray::operator>(const Scalar& scalar) const {return ge((*this), scalar);}
+Tray Tray::operator>=(const Scalar& scalar) const {return geq((*this), scalar);}
+Tray Tray::operator==(const Scalar& scalar) const {return eq((*this), scalar);}
+Tray Tray::operator!=(const Scalar& scalar) const {return neq((*this), scalar);}
+
+Tray operator<(const Scalar& scalar, const Tray& tray) {return le(scalar, tray);}
+Tray operator<=(const Scalar& scalar, const Tray& tray) {return leq(scalar, tray);}
+Tray operator>(const Scalar& scalar, const Tray& tray) {return ge(scalar, tray);}
+Tray operator>=(const Scalar& scalar, const Tray& tray) {return geq(scalar, tray);}
+Tray operator==(const Scalar& scalar, const Tray& tray) {return eq(scalar, tray);}
+Tray operator!=(const Scalar& scalar, const Tray& tray) {return neq(scalar, tray);}
+
 Tray Tray::operator-() const {return neg(*this);}
 }// namespace oven
+
+
+
+
+
+
+
+
+
+
+

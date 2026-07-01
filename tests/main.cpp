@@ -83,11 +83,12 @@ int main() {
     auto blob_tray = oven::from_blob(blob.data(), blob_shape, oven::detail::CppTypeToDType_v<float>);
     fout << toTorch(tray1) << std::endl;
     fout << toTorch(tray2) << std::endl;
-    fout << toTorch(-tray2) << std::endl;
     fout << toTorch(tray3) << std::endl;
     fout << toTorch(tray4) << std::endl;
     fout << "From blob: \n" << toTorch(blob_tray) << std::endl;
-    fout << "OPERATIONS SCALAR_TENSOR\n" << toTorch(blob_tray - val1) << std::endl << toTorch(val2 / blob_tray) << std::endl;
+    fout << "OPERATIONS SCALAR_TENSOR\n"
+         << toTorch(tray1 < val1)
+         << std::endl << toTorch(val2 > tray2) << std::endl;
     fout << file.rdbuf();
 
     fout.close();
