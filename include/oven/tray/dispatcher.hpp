@@ -16,6 +16,15 @@ enum class OpCode : uint16_t {
     div,
     matmul,
 
+    add_st,
+    add_ts,
+    sub_st,
+    sub_ts,
+    mul_ts,
+    mul_st,
+    div_ts,
+    div_st,
+
     le,
     leq,
     ge,

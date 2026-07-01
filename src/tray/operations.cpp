@@ -11,30 +11,86 @@ namespace oven {
 
 Tray add(const Tray& self, const Tray& other) {
     return detail::Dispatcher::get_instance()
-        .dispatch<decltype(add)>
+        .dispatch<TensorTensorType>
             ({detail::OpCode::add, self.dtype(), self.device()},
                 self, other);
 }
 
+Tray add(const Tray &self, const Scalar& scalar) {
+    return detail::Dispatcher::get_instance()
+        .dispatch<TensorScalarType>
+            ({detail::OpCode::add_ts, self.dtype(), self.device()},
+                self, scalar);
+}
+
+Tray add(const Scalar& scalar, const Tray& self) {
+    return detail::Dispatcher::get_instance()
+        .dispatch<ScalarTensorType>
+            ({detail::OpCode::add_st, self.dtype(), self.device()},
+                scalar, self);
+}
+
 Tray sub(const Tray& self, const Tray& other) {
     return detail::Dispatcher::get_instance()
-        .dispatch<decltype(sub)>
+        .dispatch<TensorTensorType>
             ({detail::OpCode::sub, self.dtype(), self.device()},
                 self, other);
 }
 
+Tray sub(const Tray& self, const Scalar& scalar) {
+    return detail::Dispatcher::get_instance()
+        .dispatch<TensorScalarType>
+            ({detail::OpCode::sub_ts, self.dtype(), self.device()},
+                self, scalar);
+}
+
+Tray sub(const Scalar& scalar, const Tray& self) {
+    return detail::Dispatcher::get_instance()
+        .dispatch<ScalarTensorType>
+            ({detail::OpCode::sub_st, self.dtype(), self.device()},
+                scalar, self);
+}
+
 Tray mul(const Tray& self, const Tray& other) {
     return detail::Dispatcher::get_instance()
-        .dispatch<decltype(mul)>
+        .dispatch<TensorTensorType>
             ({detail::OpCode::mul, self.dtype(), self.device()},
                 self, other);
 }
 
+Tray mul(const Tray& self, const Scalar& scalar) {
+    return detail::Dispatcher::get_instance()
+        .dispatch<TensorScalarType>
+            ({detail::OpCode::mul_ts, self.dtype(), self.device()},
+                self, scalar);
+}
+
+Tray mul(const Scalar& scalar, const Tray& self) {
+    return detail::Dispatcher::get_instance()
+        .dispatch<ScalarTensorType>
+            ({detail::OpCode::mul_st, self.dtype(), self.device()},
+                scalar, self);
+}
+
 Tray div(const Tray& self, const Tray& other) {
     return detail::Dispatcher::get_instance()
-        .dispatch<decltype(div)>
+        .dispatch<TensorTensorType>
             ({detail::OpCode::div, self.dtype(), self.device()},
                 self, other);
+}
+
+Tray div(const Tray& self, const Scalar& scalar) {
+    return detail::Dispatcher::get_instance()
+        .dispatch<TensorScalarType>
+            ({detail::OpCode::div_ts, self.dtype(), self.device()},
+                self, scalar);
+}
+
+Tray div(const Scalar& scalar, const Tray& self) {
+    return detail::Dispatcher::get_instance()
+        .dispatch<ScalarTensorType>
+            ({detail::OpCode::div_st, self.dtype(), self.device()},
+                scalar, self);
 }
 
 Tray le(const Tray& self, const Tray& other) {

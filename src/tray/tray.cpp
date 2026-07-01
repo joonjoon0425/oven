@@ -41,6 +41,16 @@ Tray Tray::operator-(const Tray& other) const {return sub((*this), other);}
 Tray Tray::operator*(const Tray& other) const {return mul((*this), other);}
 Tray Tray::operator/(const Tray& other) const {return div((*this), other);}
 
+Tray Tray::operator+(const Scalar& scalar) const {return add((*this), scalar);}
+Tray Tray::operator-(const Scalar& scalar) const {return sub((*this), scalar);}
+Tray Tray::operator*(const Scalar& scalar) const {return mul((*this), scalar);}
+Tray Tray::operator/(const Scalar& scalar) const {return div((*this), scalar);}
+
+Tray operator+(const Scalar& scalar, const Tray& tray) {return add(scalar, tray);}
+Tray operator-(const Scalar& scalar, const Tray& tray) {return sub(scalar, tray);}
+Tray operator*(const Scalar &scalar, const Tray &tray) {return mul(scalar, tray);}
+Tray operator/(const Scalar &scalar, const Tray &tray) {return div(scalar, tray);}
+
 Tray Tray::operator<(const Tray& other) const {return le((*this), other);}
 Tray Tray::operator<=(const Tray& other) const {return leq((*this), other);}
 Tray Tray::operator>(const Tray& other) const {return ge((*this), other);}
