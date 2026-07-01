@@ -3,7 +3,7 @@
     "shape2": [1, 2, 3],
     "val1": 1,
     "val2": 3,
-    "op": "neq",
+    "op": "add",
     "rd": {
         "name": "u_int",
         "l": 0,

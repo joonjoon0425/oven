@@ -33,6 +33,16 @@ public:
     Tray operator-(const Tray& other) const;
     Tray operator*(const Tray& other) const;
     Tray operator/(const Tray& other) const;
+
+    Tray operator+(const Scalar& scalar) const;
+    Tray operator-(const Scalar& scalar) const;
+    Tray operator*(const Scalar& scalar) const;
+    Tray operator/(const Scalar& scalar) const;
+
+    friend Tray operator+(const Scalar& scalar, const Tray& tray);
+    friend Tray operator-(const Scalar& scalar, const Tray& tray);
+    friend Tray operator*(const Scalar& scalar, const Tray& tray);
+    friend Tray operator/(const Scalar& scalar, const Tray& tray);
     // compare operators
     Tray operator<(const Tray& other) const;
     Tray operator<=(const Tray& other) const;
@@ -52,7 +62,7 @@ Tray ones(const SmallVector& shape, DType dtype = oven::kFloat32, Device device 
 Tray full(const SmallVector& shape, Scalar val, DType dtype = oven::DType::Undefined, Device device = Device::CPU);
 // random
 Tray rand(const SmallVector& shape, Scalar low = 0., Scalar high = 1., DType dtype = oven::kFloat32, Device device = Device::CPU);
-Tray randint(const SmallVector& shape, Scalar low, Scalar high, DType dtype = oven::DType::kInt64, Device device = Device::CPU);
+Tray randint(const SmallVector& shape, Scalar low, Scalar high, DType dtype = oven::DType::kInt32, Device device = Device::CPU);
 Tray randn(const SmallVector& shape, Scalar mean = 0., Scalar std = 1., DType dtype = oven::DType::kFloat32, Device device = Device::CPU);
 // from source
 Tray from_blob(void* source, const SmallVector& shape, DType dtype, Device device = Device::CPU);

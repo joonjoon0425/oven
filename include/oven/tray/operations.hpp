@@ -3,9 +3,20 @@
 
 namespace oven {
 Tray add(const Tray& self, const Tray& other);
+Tray add(const Tray& self, const Scalar& scalar);
+Tray add(const Scalar& scalar, const Tray& other);
+
 Tray sub(const Tray& self, const Tray& other);
+Tray sub(const Tray& self, const Scalar& scalar);
+Tray sub(const Scalar& scalar, const Tray& other);
+
 Tray mul(const Tray& self, const Tray& other);
+Tray mul(const Tray& self, const Scalar& scalar);
+Tray mul(const Scalar& scalar, const Tray& other);
+
 Tray div(const Tray& self, const Tray& other);
+Tray div(const Tray& self, const Scalar& scalar);
+Tray div(const Scalar& scalar, const Tray& other);
 
 Tray leq(const Tray& self, const Tray& other);
 Tray geq(const Tray& self, const Tray& other);

@@ -21,5 +21,8 @@ using SmallVector = std::vector<int64_t>;
 
 const std::array<DType, 5> all_types{DType::kBool, DType::kFloat32, DType::kFloat64, DType::kInt32, DType::kInt64};
 using TerneryKernelType = Tray(bool*, void*, void*, const SmallVector&, const SmallVector&, const SmallVector&, const SmallVector&, DType);
+using TensorTensorType = Tray(const Tray&, const Tray&);
+using TensorScalarType = Tray(const Tray&, const Scalar& scalar);
+using ScalarTensorType = Tray(const Scalar& scalar, const Tray&);
 
 }// namespace oven

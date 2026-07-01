@@ -34,12 +34,6 @@ void __cpu_unary_elementwise_kernel_template(std::invoke_result_t<UnOp, T>* c, c
     }
 }
 
-// template <typename T, typename BinOp>
-// requires requires (T a, T b, BinOp op) {
-//     {op(a, b)} -> std::same_as<T>;
-// }
-// void
-
 template <typename T, typename BinOp>
 requires requires (T a, T b, BinOp op) {
     {op(a, b)} -> std::same_as<std::invoke_result_t<BinOp, T, T>>;
@@ -63,6 +57,44 @@ void __cpu_binary_elementwise_kernel_template(std::invoke_result_t<BinOp, T, T>*
         a_index = detail::compute_index(coord, a_stride);
         b_index = detail::compute_index(coord, b_stride);
         c[i] = BinOp::get_instance()(a_data[a_index], b_data[b_index]);
+    }
+}
+
+template <typename T, typename BinOp>
+requires requires (T a, T b, BinOp op)
+{
+    {op(a, b)} -> std::same_as<std::invoke_result_t<BinOp, T, T>>;
+}
+void __cpu_binary_scalar_tensor_kernel_template(T* dst, T scalar, const Tray& a) {
+    SmallVector coord(a.shape().size(), 0);
+    const SmallVector& a_stride = a.stride();
+    const SmallVector& dst_stride = detail::compute_stride(a.shape());
+    T* a_data = static_cast<T*>(a.data().get());
+    int64_t a_idx = 0;
+
+    for (int64_t i = 0; i < a.numel(); i++) {
+        detail::compute_coordinate(i, dst_stride, coord);
+        a_idx = detail::compute_index(coord, a_stride);
+        dst[i] = BinOp::get_instance()(scalar, a_data[a_idx]);
+    }
+}
+
+template <typename T, typename BinOp>
+requires requires (T a, T b, BinOp op)
+{
+    {op(a, b)} -> std::same_as<std::invoke_result_t<BinOp, T, T>>;
+}
+void __cpu_binary_tensor_scalar_kernel_template(T* dst, const Tray& a, T scalar) {
+    SmallVector coord(a.shape().size(), 0);
+    const SmallVector& a_stride = a.stride();
+    const SmallVector& dst_stride = detail::compute_stride(a.shape());
+    T* a_data = static_cast<T*>(a.data().get());
+    int64_t a_idx = 0;
+
+    for (int64_t i = 0; i < a.numel(); i++) {
+        detail::compute_coordinate(i, dst_stride, coord);
+        a_idx = detail::compute_index(coord, a_stride);
+        dst[i] = BinOp::get_instance()(a_data[a_idx], scalar);
     }
 }
 
@@ -174,6 +206,34 @@ Tray __cpu_binary_elementwise_kernel(const Tray& a, const Tray& b) {
     });
 }
 
+template <typename BinOp>
+Tray __cpu_binary_scalar_tensor_kernel(const Scalar& scalar, const Tray& self) {
+    return TRAY_DISPATCH_ALL_TYPES(self.dtype(), BinOp::name, [&] {
+        return std::visit([&](const auto& v) {
+            using T = std::decay_t<decltype(v)>;
+            OVEN_ASSERT((std::is_same_v<T, scalar_t>), "DType does not matches in scalar-tensor operation " + BinOp::name);
+            using result_t = std::invoke_result_t<BinOp, scalar_t, scalar_t>;
+            std::shared_ptr<result_t> data(new result_t[self.numel()]);
+            __cpu_binary_scalar_tensor_kernel_template<scalar_t, BinOp>(data.get(), v, self);
+            return Tray(make_intrusive<TrayImpl>(self.shape(), detail::compute_stride(self.shape()), detail::CppTypeToDType_v<result_t>, Device::CPU, data));
+        }, scalar);
+    });
+}
+
+template <typename BinOp>
+Tray __cpu_binary_tensor_scalar_kernel(const Tray& self, const Scalar& scalar) {
+    return TRAY_DISPATCH_ALL_TYPES(self.dtype(), BinOp::name, [&] {
+        return std::visit([&](const auto& v) {
+            using T = std::decay_t<decltype(v)>;
+            OVEN_ASSERT((std::is_same_v<T, scalar_t>), "DType does not matches in tensor-scalar operation " + BinOp::name);
+            using result_t = std::invoke_result_t<BinOp, scalar_t, scalar_t>;
+            std::shared_ptr<result_t> data(new result_t[self.numel()]);
+            __cpu_binary_tensor_scalar_kernel_template<scalar_t, BinOp>(data.get(), self, v);
+            return Tray(make_intrusive<TrayImpl>(self.shape(), detail::compute_stride(self.shape()), detail::CppTypeToDType_v<result_t>, Device::CPU, data));
+        }, scalar);
+});
+}
+
 Tray __cpu_ternery_kernel(bool* c, void* a, void* b, const SmallVector& a_stride, const SmallVector& b_stride, const SmallVector& c_stride, const SmallVector& shape, DType dtype) {
     int64_t total_size = 1;
     for (int64_t i = 0; i < shape.size(); i++) total_size *= shape[i];
@@ -205,9 +265,21 @@ void __cpu_scatter_inplace_kernel(const Tray& self, int64_t dim, const Tray& ind
 
 // register kernels here
 TRAY_REGISTER(add, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::AddOp>);
+TRAY_REGISTER(add_ts, CPU, oven::all_types, oven::__cpu_binary_tensor_scalar_kernel<oven::detail::AddOp>);
+TRAY_REGISTER(add_st, CPU, oven::all_types, oven::__cpu_binary_scalar_tensor_kernel<oven::detail::AddOp>);
+
 TRAY_REGISTER(sub, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::SubOp>);
+TRAY_REGISTER(sub_ts, CPU, oven::all_types, oven::__cpu_binary_tensor_scalar_kernel<oven::detail::SubOp>);
+TRAY_REGISTER(sub_st, CPU, oven::all_types, oven::__cpu_binary_scalar_tensor_kernel<oven::detail::SubOp>);
+
 TRAY_REGISTER(mul, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::MulOp>);
+TRAY_REGISTER(mul_ts, CPU, oven::all_types, oven::__cpu_binary_tensor_scalar_kernel<oven::detail::MulOp>);
+TRAY_REGISTER(mul_st, CPU, oven::all_types, oven::__cpu_binary_scalar_tensor_kernel<oven::detail::MulOp>);
+
 TRAY_REGISTER(div, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::DivOp>);
+TRAY_REGISTER(div_ts, CPU, oven::all_types, oven::__cpu_binary_tensor_scalar_kernel<oven::detail::DivOp>);
+TRAY_REGISTER(div_st, CPU, oven::all_types, oven::__cpu_binary_scalar_tensor_kernel<oven::detail::DivOp>);
+
 
 TRAY_REGISTER(le, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::LeOp>);
 TRAY_REGISTER(leq, CPU, oven::all_types, oven::__cpu_binary_elementwise_kernel<oven::detail::LeqOp>);
