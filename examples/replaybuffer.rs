@@ -31,7 +31,7 @@ fn main() {
     }
 
     for _ in 0..10 {
-        let batched = buf.sample(16, &device).unwrap();
+        let batched = buf.sample(16, &device).unwrap().unwrap();
         println!("obs: {}", batched.observations);
         println!("action: {}", batched.actions);
     }

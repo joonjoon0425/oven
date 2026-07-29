@@ -1,4 +1,6 @@
 pub mod buffer;
-pub mod qnet;
+pub mod discreteqnet;
 pub mod mask;
 pub mod transition;
+pub mod exploration;
+pub mod encoder;

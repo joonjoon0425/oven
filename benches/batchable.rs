@@ -33,7 +33,7 @@ fn bench_batch(c: &mut Criterion) {
     c.bench_function("batch", |b| {
         b.iter_batched(
             || source.clone(), // Tensor clone은 얕은 복사(참조 카운트)라 저렴함
-            |buffer| black_box(Tensor::batch(&buffer, &device).unwrap()),
+            |buffer| black_box(Tensor::batch(buffer, &device).unwrap()),
             BatchSize::LargeInput,
         )
     });

@@ -54,6 +54,7 @@ where
         if self.capacity <= self.len() {
             // pop front
             self.observations.pop_front();
+            self.next_observations.pop_front();
             self.actions.pop_front();
             self.rewards.pop_front();
             self.terminates.pop_front();
@@ -83,8 +84,12 @@ where
         
     }
 
-    pub fn sample(&mut self, batch_size: usize, device: &Device) -> Result<BatchedTransition<Obs::Batched, Action::Batched, Mask::Batched, Extra::Batched>> {
+    pub fn sample(&mut self, batch_size: usize, device: &Device) -> Result<Option<BatchedTransition<Obs::Batched, Action::Batched, Mask::Batched, Extra::Batched>>> {
         let len = self.len();
+        if len < batch_size {
+            return Ok(None);
+        }
+
         let indices = sample(&mut self.rng, len, batch_size);
         let (observations, masks, actions, rewards, next_observations, next_masks, terminates, truncates, extras)
         : (Vec<Obs>, Vec<Mask>, Vec<Action>, Vec<f32>, Vec<Obs>, Vec<Mask>, Vec<f32>, Vec<f32>, Vec<Extra>)
@@ -103,16 +108,16 @@ where
         }).collect();
         
         Ok(BatchedTransition {
-            observations: Obs::batch(&observations, device)?,
-            masks: Mask::batch(&masks, device)?,
-            actions: Action::batch(&actions, device)?,
-            rewards: f32::batch(&rewards, device)?,
-            next_observations: Obs::batch(&next_observations, device)?,
-            next_masks: Mask::batch(&next_masks, device)?,
-            terminates: f32::batch(&terminates, device)?,
-            truncates: f32::batch(&truncates, device)?,
-            extras: Extra::batch(&extras, device)?,
-        })
+            observations: Obs::batch(observations, device)?,
+            masks: Mask::batch(masks, device)?,
+            actions: Action::batch(actions, device)?,
+            rewards: f32::batch(rewards, device)?,
+            next_observations: Obs::batch(next_observations, device)?,
+            next_masks: Mask::batch(next_masks, device)?,
+            terminates: f32::batch(terminates, device)?,
+            truncates: f32::batch(truncates, device)?,
+            extras: Extra::batch(extras, device)?,
+        }.into())
         
     }
 
