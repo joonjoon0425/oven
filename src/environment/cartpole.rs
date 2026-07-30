@@ -28,6 +28,8 @@ pub struct CartPoleEnv {
 
 use rand::{Rng, RngExt, SeedableRng, rngs::StdRng};
 
+use crate::{components::mask::DiscreteMask, environment::Environment};
+
 impl CartPoleEnv {
     pub fn new(device: &Device, seed: u64) -> Self {
         Self {
@@ -49,19 +51,37 @@ impl CartPoleEnv {
         }
     }
 
+    fn state_to_tensor(&self) -> Result<Tensor> {
+        Tensor::from_slice(&self.state, (4,), &self.device)?.to_dtype(DType::F32)
+    }
+
+    pub fn action_space_size(&self) -> usize {
+        2
+    }
+
+    pub fn obs_dim(&self) -> usize {
+        4
+    }
+}
+
+impl Environment for CartPoleEnv {
+    type Obs = Tensor;
+    type Action = u32;
+    type Mask = DiscreteMask;
+
     /// 환경을 초기화하고 초기 관측값을 (1, 4) 텐서로 반환
-    pub fn reset(&mut self) -> Result<Tensor> {
+    fn reset(&mut self) -> Result<(Tensor, Self::Mask)> {
         // Gym과 동일하게 [-0.05, 0.05] uniform 초기화
         for s in self.state.iter_mut() {
             *s = self.rng.random_range(-0.05..0.05);
         }
         self.steps = 0;
-        self.state_to_tensor()
+        Ok((self.state_to_tensor()?, DiscreteMask::all_enabled(self.action_space_size())))
     }
 
     /// action: 0 = 왼쪽으로 힘, 1 = 오른쪽으로 힘
     /// 반환: (obs, reward, terminated, truncated)
-    pub fn step(&mut self, action: u32) -> Result<(Tensor, f32, bool, bool)> {
+    fn step(&mut self, action: u32) -> Result<(Tensor, Self::Mask, f32, bool, bool)> {
         assert!(action == 0 || action == 1, "action은 0 또는 1이어야 함");
 
         let [x, x_dot, theta, theta_dot] = self.state;
@@ -95,18 +115,6 @@ impl CartPoleEnv {
         // Gym 관례: 살아있으면 매 스텝 +1 reward
         let reward = 1.0f32;
 
-        Ok((self.state_to_tensor()?, reward, terminated, truncated))
-    }
-
-    fn state_to_tensor(&self) -> Result<Tensor> {
-        Tensor::from_slice(&self.state, (4,), &self.device)?.to_dtype(DType::F32)
-    }
-
-    pub fn action_space_size(&self) -> usize {
-        2
-    }
-
-    pub fn obs_dim(&self) -> usize {
-        4
+        Ok((self.state_to_tensor()?, DiscreteMask::all_enabled(self.action_space_size()), reward, terminated, truncated))
     }
 }

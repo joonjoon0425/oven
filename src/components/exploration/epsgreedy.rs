@@ -19,7 +19,7 @@ impl EpsGreedy {
             let n = self.rng.random_range(0..n_possible_actions);
             Ok(mask.iter().nth(n).unwrap())
         } else {
-            Ok(network.greedy_action(&mut self.rng, obs, mask)?)
+            Ok(network.greedy_action(obs, mask)?)
         }
     }
 

@@ -67,10 +67,10 @@ impl<M: Module, E: Encoder> DiscreteQNet<M, E> {
         Ok(greedy_actions)
     }
 
-    pub fn greedy_action(&mut self, rng: &mut StdRng, obs: &E::Obs, mask: DiscreteMask) -> Result<u32> {
+    pub fn greedy_action(&mut self, obs: &E::Obs, mask: DiscreteMask) -> Result<u32> {
         let greedy_actions = self.greedy_actions(obs, mask)?;
         let n = greedy_actions.n_possible_actions();
-        let r = rng.random_range(0..n);
+        let r = self.rng.random_range(0..n);
         Ok(greedy_actions.iter().nth(r).unwrap())
     }
 

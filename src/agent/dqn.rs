@@ -9,6 +9,7 @@ use crate::components::exploration::epsgreedy::EpsGreedy;
 use crate::components::mask::discretemask::DiscreteMask;
 use crate::components::discreteqnet::*;
 use crate::components::transition::{BatchedTransition, Transition};
+use crate::episode::{BasicEpisodeIterator, EpisodeIterator};
 use crate::traits::Batchable;
 
 pub struct DQNAgent<M: Module, E: Encoder = IdenEncoder, Opt: Optimizer = AdamW> {
@@ -20,8 +21,6 @@ pub struct DQNAgent<M: Module, E: Encoder = IdenEncoder, Opt: Optimizer = AdamW>
 
     exploration: EpsGreedy,
 
-    rng: StdRng,
-
     optimizer: Opt,
 }
 
@@ -32,7 +31,6 @@ pub struct DQNAgentBuilder<M: Module, E: Encoder = IdenEncoder, Opt: Optimizer =
     rng: StdRng,
     main_network: Option<DiscreteQNet<M, E>>,
     target_network: Option<DiscreteQNet<M, E>>,
-    encoder: Option<E>,
     optimizer: Option<Opt>
 }
 
@@ -48,7 +46,7 @@ impl<M: Module, E: Encoder, Opt: Optimizer> Agent<E::Obs> for DQNAgent<M, E, Opt
     }
 
     fn exploit(&mut self, obs: &E::Obs, mask: Self::Mask) -> Result<Self::Action> {
-        self.target_network.greedy_action(&mut self.rng, obs, mask)
+        self.target_network.greedy_action(obs, mask)
     }
 
     fn update(&mut self, batch: &Self::BatchedTransition) -> Result<f32> {
@@ -78,7 +76,6 @@ impl<M: Module, E: Encoder, Opt: Optimizer> DQNAgent<M, E, Opt> {
             explore: None,
             target_network: None,
             main_network: None,
-            encoder: None,
             optimizer: None,
         }
     }
@@ -129,7 +126,6 @@ impl<M: Module, E: Encoder, Opt: Optimizer> DQNAgentBuilder<M, E, Opt>{
             main_network: self.main_network.unwrap(),
             target_network: self.target_network.unwrap(),
             exploration: self.explore.unwrap(),
-            rng: self.rng,
             optimizer: self.optimizer.unwrap(),
         })
     }

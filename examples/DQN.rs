@@ -5,7 +5,8 @@ use oven::components::buffer::replay_buffer::ReplayBuffer;
 use oven::components::encoder::{Encoder, IdenEncoder};
 use oven::components::mask::discretemask::DiscreteMask;
 use oven::components::transition::Transition;
-use oven::environment::cartpole::*;
+use oven::environment::{Environment, cartpole::*};
+use oven::episode::{BasicEpisodeIterator, EpisodeIterator};
 
 fn main() {
     let seed = 12;
@@ -33,45 +34,24 @@ fn main() {
 
     let mut buffer = ReplayBuffer::new(10000, seed);
     
+    
     for i in 0..4000 {
-        let mut obs = env.reset().unwrap();
-        let mut steps = 0;
         let mut loss = 0f32;
-        loop {
-            let action = agent.explore(&obs, DiscreteMask::all_enabled(2)).unwrap();
-            let (next_obs, reward, terminate, truncate) = env.step(action).unwrap();
-
-            let transition = Transition {
-                masked_observation: (obs, DiscreteMask::all_enabled(2)),
-                action,
-                reward,
-                next_masked_observation: (next_obs.clone(), DiscreteMask::all_enabled(2)),
-                terminate,
-                truncate,
-                extra: (),
-            };
-
-            buffer.push(transition);
-
-            obs = next_obs;
-            if let Some(batch) = &buffer.sample(64, &device).unwrap() {
-                loss = agent.update(batch).unwrap();
+        let mut iter = BasicEpisodeIterator::new(&mut env, &mut agent, None);
+        while let Some(t) = iter.step(&mut env, &mut agent).unwrap() {
+            buffer.push(t);
+            let batch = buffer.sample(32, &device).unwrap();
+            if let Some(batch) = batch {
+                loss = agent.update(&batch).unwrap();
             }
-            steps += 1;
             counter += 1;
-            
-            if counter % 400 == 0 {
-                agent.sync_networks().unwrap();
-            }
-            if terminate || truncate {
-                break;
-            }
-            
+            if counter % 400 == 0 { agent.sync_networks(); }
         }
+
         let eps = agent.exploration().eps() * 0.99;
         *agent.exploration_mut().eps_mut() = if eps <= 0.05 { 0.05 } else { eps };
         if i % 10 == 0 {
-            println!("EPISODE: {i:>5}, STEPS: {steps:>5}, LOSS: {loss:.5}, EPS: {:.5}, COUNTER: {}", agent.exploration().eps(), counter);
+            println!("EPISODE: {i:>5}, STEPS: {:>5}, LOSS: {loss:.5}, EPS: {:.5}, COUNTER: {}", iter.steps(), agent.exploration().eps(), counter);
         }
     }
 }
