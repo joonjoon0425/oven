@@ -6,7 +6,7 @@ pub struct CartPoleEnv {
 
     // 물리 상수 (OpenAI Gym CartPole-v1 기준)
     gravity: f64,
-    masscart: f64,
+    _masscart: f64,
     masspole: f64,
     total_mass: f64,
     length: f64,        // 실제로는 pole 길이의 절반
@@ -26,7 +26,7 @@ pub struct CartPoleEnv {
     rng: StdRng,
 }
 
-use rand::{Rng, RngExt, SeedableRng, rngs::StdRng};
+use rand::{RngExt, SeedableRng, rngs::StdRng};
 
 use crate::{components::mask::DiscreteMask, environment::Environment};
 
@@ -35,7 +35,7 @@ impl CartPoleEnv {
         Self {
             device: device.clone(),
             gravity: 9.8,
-            masscart: 1.0,
+            _masscart: 1.0,
             masspole: 0.1,
             total_mass: 1.0 + 0.1,
             length: 0.5,
@@ -110,8 +110,8 @@ impl Environment for CartPoleEnv {
             || new_theta < -self.theta_threshold_radians
             || new_theta > self.theta_threshold_radians;
 
-        let truncated = !terminated && self.steps >= self.max_steps;
-
+        //let truncated = !terminated && self.steps >= self.max_steps;
+        let truncated = false;
         // Gym 관례: 살아있으면 매 스텝 +1 reward
         let reward = 1.0f32;
 

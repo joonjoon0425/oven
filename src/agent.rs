@@ -1,8 +1,6 @@
 pub mod dqn;
 use candle_core::Result;
-use crate::episode::BasicEpisodeIterator;
-use crate::{environment::Environment, traits::Batchable};
-use crate::episode::EpisodeIterator;
+use crate::traits::Batchable;
 
 pub trait Agent<Obs>: Sized
 where

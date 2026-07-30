@@ -1,5 +1,5 @@
 use candle_core::{DType, Device, Result};
-use candle_nn::{AdamW, Module, Optimizer, VarBuilder, VarMap, loss};
+use candle_nn::{AdamW, Module, Optimizer, VarBuilder, loss};
 use rand::{RngExt, SeedableRng};
 use rand::rngs::StdRng;
 
@@ -9,7 +9,8 @@ use crate::components::exploration::epsgreedy::EpsGreedy;
 use crate::components::mask::discretemask::DiscreteMask;
 use crate::components::discreteqnet::*;
 use crate::components::transition::{BatchedTransition, Transition};
-use crate::episode::{BasicEpisodeIterator, EpisodeIterator};
+use crate::environment::Environment;
+use crate::episode::BasicEpisodeIterator;
 use crate::traits::Batchable;
 
 pub struct DQNAgent<M: Module, E: Encoder = IdenEncoder, Opt: Optimizer = AdamW> {
@@ -60,7 +61,7 @@ impl<M: Module, E: Encoder, Opt: Optimizer> Agent<E::Obs> for DQNAgent<M, E, Opt
         let target_qvalues = (&batch.rewards + bootstrap.affine(self.gamma as f64, 0f64))?.detach();
 
         // use huber loss for now
-        let loss = loss::huber(&predicted_qvalues, &target_qvalues, 2.)?;
+        let loss = loss::mse(&predicted_qvalues, &target_qvalues)?;
         self.optimizer.backward_step(&loss)?;
 
         Ok(loss.to_scalar()?)
@@ -130,3 +131,5 @@ impl<M: Module, E: Encoder, Opt: Optimizer> DQNAgentBuilder<M, E, Opt>{
         })
     }
 }
+
+pub type DQNEpisode<E> = BasicEpisodeIterator<E>;

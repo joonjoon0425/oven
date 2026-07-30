@@ -1,4 +1,4 @@
-use candle_core::{Result, Tensor};
+use candle_core::Result;
 use candle_nn::Module;
 use rand::{RngExt, SeedableRng, rngs::StdRng};
 use crate::components::{discreteqnet::DiscreteQNet, encoder::Encoder, mask::discretemask::DiscreteMask};

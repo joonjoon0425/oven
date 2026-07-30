@@ -1,6 +1,6 @@
 use candle_core::Result;
 
-use crate::{agent::Agent, components::{mask::discretemask::DiscreteMask, transition::Transition}, environment::Environment, traits::Batchable};
+use crate::{agent::Agent, components::transition::Transition, environment::Environment, traits::Batchable};
 // test structure
 
 pub trait EpisodeIterator<E: Environment>{
@@ -32,7 +32,7 @@ pub struct BasicEpisodeIterator<E: Environment> {
 impl<E: Environment> EpisodeIterator<E> for BasicEpisodeIterator<E> {
     type Extra = ();
 
-    fn new<A>(env: &mut E, agent: &mut A, max_steps: Option<usize>) -> Self
+    fn new<A>(env: &mut E, _agent: &mut A, max_steps: Option<usize>) -> Self
     where
         A: Agent<E::Obs, Action = E::Action, Mask = E::Mask, Extra = Self::Extra>
     {
@@ -47,7 +47,7 @@ impl<E: Environment> EpisodeIterator<E> for BasicEpisodeIterator<E> {
         }
     }
 
-    fn reset<A>(&mut self, env: &mut E, agent: &mut A)
+    fn reset<A>(&mut self, env: &mut E, _agent: &mut A)
     where
         A: Agent<E::Obs, Action = E::Action, Mask = E::Mask, Extra = Self::Extra>
     {

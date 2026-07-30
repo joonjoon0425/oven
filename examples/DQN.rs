@@ -1,12 +1,9 @@
 use candle_core::{DType, Device};
-use candle_nn::{Activation, BatchNorm, ParamsAdamW, linear, seq};
+use candle_nn::{Activation, ParamsAdamW, linear, seq};
 use oven::agent::{Agent, dqn::*};
 use oven::components::buffer::replay_buffer::ReplayBuffer;
-use oven::components::encoder::{Encoder, IdenEncoder};
-use oven::components::mask::discretemask::DiscreteMask;
-use oven::components::transition::Transition;
-use oven::environment::{Environment, cartpole::*};
-use oven::episode::{BasicEpisodeIterator, EpisodeIterator};
+use oven::environment::cartpole::*;
+use oven::episode::{EpisodeIterator};
 
 fn main() {
     let seed = 12;
@@ -37,7 +34,7 @@ fn main() {
     
     for i in 0..4000 {
         let mut loss = 0f32;
-        let mut iter = BasicEpisodeIterator::new(&mut env, &mut agent, None);
+        let mut iter = DQNEpisode::new(&mut env, &mut agent, None);
         while let Some(t) = iter.step(&mut env, &mut agent).unwrap() {
             buffer.push(t);
             let batch = buffer.sample(32, &device).unwrap();
@@ -45,7 +42,7 @@ fn main() {
                 loss = agent.update(&batch).unwrap();
             }
             counter += 1;
-            if counter % 400 == 0 { agent.sync_networks(); }
+            if counter % 400 == 0 { agent.sync_networks().unwrap(); }
         }
 
         let eps = agent.exploration().eps() * 0.99;
