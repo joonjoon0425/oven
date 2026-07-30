@@ -2,28 +2,31 @@ use candle_nn::{Module, VarBuilder, VarMap};
 use candle_core::{Tensor, Result, DType, Device};
 use rand::{RngExt, SeedableRng, rngs::StdRng};
 
-use crate::components::{mask::discretemask::DiscreteMask};
+use crate::{components::{encoder::{Encoder, IdenEncoder}, mask::discretemask::DiscreteMask}, traits::Batchable};
 
 // Q Network
-pub struct DiscreteQNet<M: Module> {
+pub struct DiscreteQNet<M: Module, E: Encoder = IdenEncoder> {
     network: M,
     varmap: VarMap,
+    encoder: E,
     rng: StdRng,
 }
 
-impl<M: Module> DiscreteQNet<M> {
-    pub fn new<F>(seed: u64, dtype: DType, device: &Device, func: &F) -> Result<DiscreteQNet<M>>
+impl<M: Module, E: Encoder> DiscreteQNet<M, E> {
+    pub fn new<F>(seed: u64, encoder_config: &E::Config, dtype: DType, device: &Device, func: &F) -> Result<DiscreteQNet<M, E>>
     where
         F: Fn(VarBuilder) -> Result<M>,
     {
         let varmap = VarMap::new();
         let varbuilder = VarBuilder::from_varmap(&varmap, dtype, device);
-
         let network = func(varbuilder)?;
+
+        let encoder = E::new(&varmap, encoder_config)?;
 
         Ok(DiscreteQNet {
             network,
             varmap,
+            encoder,
             rng: StdRng::seed_from_u64(seed),
         })
     }
@@ -31,7 +34,9 @@ impl<M: Module> DiscreteQNet<M> {
     pub fn varmap(&self) -> &VarMap { &self.varmap }
     pub fn varmap_mut(&mut self) -> &mut VarMap { &mut self.varmap }
 
-    pub fn max(&mut self, obs: &Tensor, mask: DiscreteMask) -> Result<f32> {
+    pub fn encoder(&self) -> &E { &self.encoder }
+
+    pub fn max(&mut self, obs: &E::Obs, mask: DiscreteMask) -> Result<f32> {
         let mut max = f32::MIN;
         let qvalues = self.forward(obs)?.squeeze(0)?;
         for action in mask.iter() {
@@ -43,7 +48,7 @@ impl<M: Module> DiscreteQNet<M> {
         Ok(max)
     }
 
-    pub fn greedy_actions(&mut self, obs: &Tensor, mask: DiscreteMask) -> Result<DiscreteMask> {
+    pub fn greedy_actions(&mut self, obs: &E::Obs, mask: DiscreteMask) -> Result<DiscreteMask> {
         let mut max = f32::MIN;
         let qvalues = self.forward(obs)?.squeeze(0)?;
         let mut greedy_actions = DiscreteMask::all_disabled(mask.n_actions);
@@ -62,18 +67,23 @@ impl<M: Module> DiscreteQNet<M> {
         Ok(greedy_actions)
     }
 
-    pub fn greedy_action(&mut self, rng: &mut StdRng, obs: &Tensor, mask: DiscreteMask) -> Result<u32> {
+    pub fn greedy_action(&mut self, rng: &mut StdRng, obs: &E::Obs, mask: DiscreteMask) -> Result<u32> {
         let greedy_actions = self.greedy_actions(obs, mask)?;
         let n = greedy_actions.n_possible_actions();
         let r = rng.random_range(0..n);
         Ok(greedy_actions.iter().nth(r).unwrap())
     }
-}
 
-impl<M: Module> Module for DiscreteQNet<M> {
-    fn forward(&self, xs: &Tensor) -> Result<Tensor> {
-        self.network.forward(xs)
+    pub fn forward(&mut self, obs: &E::Obs) -> Result<Tensor> {
+        let encoded_obs = self.encoder.encode(obs)?.unsqueeze(0)?;
+        self.network.forward(&encoded_obs)
     }
+
+    pub fn batched_forward(&mut self, batched_obs: &<E::Obs as Batchable>::Batched) -> Result<Tensor> {
+        let batched_encoded_obs = self.encoder.encode_batched(batched_obs)?;
+        self.network.forward(&batched_encoded_obs)
+    }
+
 }
 
 pub fn sync_varmap(src: &VarMap, dst: &mut VarMap) -> Result<()> {

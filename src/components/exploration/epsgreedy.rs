@@ -1,7 +1,7 @@
 use candle_core::{Result, Tensor};
 use candle_nn::Module;
 use rand::{RngExt, SeedableRng, rngs::StdRng};
-use crate::components::{mask::discretemask::DiscreteMask, discreteqnet::DiscreteQNet};
+use crate::components::{discreteqnet::DiscreteQNet, encoder::Encoder, mask::discretemask::DiscreteMask};
 
 pub struct EpsGreedy {
     eps: f32,
@@ -11,7 +11,7 @@ pub struct EpsGreedy {
 impl EpsGreedy {
     pub fn new(eps: f32, seed: u64) -> Self { Self{ eps, rng: StdRng::seed_from_u64(seed) } }
 
-    pub fn sample<M: Module>(&mut self, network: &mut DiscreteQNet<M>, encoded_obs: &Tensor, mask: DiscreteMask) -> Result<u32> {
+    pub fn sample<M: Module, E: Encoder>(&mut self, network: &mut DiscreteQNet<M, E>, obs: &E::Obs, mask: DiscreteMask) -> Result<u32> {
         let r = self.rng.random();
 
         if self.eps >= r {
@@ -19,10 +19,9 @@ impl EpsGreedy {
             let n = self.rng.random_range(0..n_possible_actions);
             Ok(mask.iter().nth(n).unwrap())
         } else {
-            Ok(network.greedy_action(&mut self.rng, encoded_obs, mask)?)
+            Ok(network.greedy_action(&mut self.rng, obs, mask)?)
         }
     }
-
 
     pub fn eps(&self) -> f32 { self.eps }
     pub fn eps_mut(&mut self) -> &mut f32 { &mut self.eps }

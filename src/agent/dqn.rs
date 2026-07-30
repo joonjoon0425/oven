@@ -15,13 +15,12 @@ pub struct DQNAgent<M: Module, E: Encoder = IdenEncoder, Opt: Optimizer = AdamW>
     gamma: f32,
     n_actions: usize,
 
-    main_network: DiscreteQNet<M>,
-    target_network: DiscreteQNet<M>,
+    main_network: DiscreteQNet<M, E>,
+    target_network: DiscreteQNet<M, E>,
 
     exploration: EpsGreedy,
 
     rng: StdRng,
-    encoder: E,
 
     optimizer: Opt,
 }
@@ -31,13 +30,13 @@ pub struct DQNAgentBuilder<M: Module, E: Encoder = IdenEncoder, Opt: Optimizer =
     explore: Option<EpsGreedy>,
     n_actions: usize,
     rng: StdRng,
-    main_network: Option<DiscreteQNet<M>>,
-    target_network: Option<DiscreteQNet<M>>,
+    main_network: Option<DiscreteQNet<M, E>>,
+    target_network: Option<DiscreteQNet<M, E>>,
     encoder: Option<E>,
     optimizer: Option<Opt>
 }
 
-impl<M: Module, E: Encoder> Agent<E::Obs> for DQNAgent<M, E> {
+impl<M: Module, E: Encoder, Opt: Optimizer> Agent<E::Obs> for DQNAgent<M, E, Opt> {
     type Action = u32;
     type Mask = DiscreteMask;
     type Extra = ();
@@ -45,23 +44,20 @@ impl<M: Module, E: Encoder> Agent<E::Obs> for DQNAgent<M, E> {
     type BatchedTransition = BatchedTransition<<E::Obs as Batchable>::Batched, <u32 as Batchable>::Batched, <Self::Mask as Batchable>::Batched, ()>;
     
     fn explore(&mut self, obs: &E::Obs, mask: Self::Mask) -> Result<Self::Action> {
-        let encoded_obs = self.encoder.encode(obs)?;
-        let encoded_obs = encoded_obs.unsqueeze(0)?;
-        self.exploration.sample(&mut self.main_network, &encoded_obs, mask)
+        self.exploration.sample(&mut self.main_network, obs, mask)
     }
 
     fn exploit(&mut self, obs: &E::Obs, mask: Self::Mask) -> Result<Self::Action> {
-        let encoded_obs = self.encoder.encode(obs)?;
-        self.target_network.greedy_action(&mut self.rng, &encoded_obs, mask)
+        self.target_network.greedy_action(&mut self.rng, obs, mask)
     }
 
     fn update(&mut self, batch: &Self::BatchedTransition) -> Result<f32> {
-        let encoded_batched_obs = self.encoder.encode_batched(&batch.observations)?;
-        let batched_qvalues = self.main_network.forward(&encoded_batched_obs)?;
+        let batched_obs = &batch.observations;
+        let batched_qvalues = self.main_network.batched_forward(&batched_obs)?;
         let predicted_qvalues = batched_qvalues.gather(&batch.actions.unsqueeze(1)?, 1)?.squeeze(1)?;
 
-        let next_encoded_batched_obs = self.encoder.encode_batched(&batch.next_observations)?;
-        let batched_targets = self.target_network.forward(&next_encoded_batched_obs)?.detach();
+        let next_batched_obs = &batch.next_observations;
+        let batched_targets = self.target_network.batched_forward(&next_batched_obs)?.detach();
         let bootstrap = (batched_targets.max(1)? * batch.terminates.affine(-1., 1.))?;
         let target_qvalues = (&batch.rewards + bootstrap.affine(self.gamma as f64, 0f64))?.detach();
 
@@ -113,26 +109,12 @@ impl<M: Module, E: Encoder, Opt: Optimizer> DQNAgentBuilder<M, E, Opt>{
         Ok(self)
     }
 
-    pub fn encoder(mut self, config: <E as Encoder>::Config) -> Result<Self> {
-        let main_network = self.main_network.expect("Main network must be initialized before encoder.");
-        let main_varmap = main_network.varmap();
-        let mut target_network = self.target_network.expect("Target network must be initialized before encoder.");
-        let target_varmap = target_network.varmap_mut();
-        sync_varmap(main_varmap,target_varmap)?;
-
-        self.encoder = E::new(main_varmap, &config)?.into();
-        let _ = E::new(target_varmap, &config)?;
-        self.main_network = main_network.into();
-        self.target_network = target_network.into();
-        Ok(self)
-    }
-
-    pub fn network<F>(mut self, dtype: DType, device: &Device, func: &F) -> Result<Self>
+    pub fn network<F>(mut self, config: &E::Config, dtype: DType, device: &Device, func: &F) -> Result<Self>
     where
         F: Fn(VarBuilder) -> Result<M>,
     {
-        let main_network = DiscreteQNet::new(self.rng.random(), dtype, device, func)?;
-        let target_network = DiscreteQNet::new(self.rng.random(), dtype, device, func)?;
+        let main_network = DiscreteQNet::new(self.rng.random(), config, dtype, device, func)?;
+        let target_network = DiscreteQNet::new(self.rng.random(), config, dtype, device, func)?;
 
         self.main_network = main_network.into();
         self.target_network = target_network.into();
@@ -148,7 +130,6 @@ impl<M: Module, E: Encoder, Opt: Optimizer> DQNAgentBuilder<M, E, Opt>{
             target_network: self.target_network.unwrap(),
             exploration: self.explore.unwrap(),
             rng: self.rng,
-            encoder: self.encoder.unwrap(),
             optimizer: self.optimizer.unwrap(),
         })
     }
